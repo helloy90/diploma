@@ -323,7 +323,8 @@ void WorldRenderer::loadLights()
     Light{.pos = {25, 5, 50}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 5},
     Light{.pos = {50, 5, 50}, .radius = 0, .worldPos = {}, .color = {0.3, 1, 0}, .intensity = 5},
     Light{.pos = {25, 5, 10}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 5},
-    Light{.pos = {100, 5, 100}, .radius = 0, .worldPos = {}, .color = {1, 0.5, 0.5}, .intensity = 5},
+    Light{
+      .pos = {100, 5, 100}, .radius = 0, .worldPos = {}, .color = {1, 0.5, 0.5}, .intensity = 5},
     Light{.pos = {150, 5, 150}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 10},
     Light{.pos = {25, 5, 10}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 5},
     Light{.pos = {10, 5, 25}, .radius = 0, .worldPos = {}, .color = {1, 0, 1}, .intensity = 5},
@@ -444,6 +445,8 @@ void WorldRenderer::drawGui()
 
 void WorldRenderer::generateTerrain()
 {
+  ETNA_CHECK_VK_RESULT(etna::get_context().getDevice().waitIdle());
+
   auto commandBuffer = oneShotCommands->start();
 
   ETNA_CHECK_VK_RESULT(commandBuffer.begin(vk::CommandBufferBeginInfo{}));
@@ -505,7 +508,7 @@ void WorldRenderer::generateTerrain()
       commandBuffer,
       terrainMap.get(),
       vk::PipelineStageFlagBits2::eComputeShader,
-      vk::AccessFlagBits2::eShaderStorageRead,
+      vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite,
       vk::ImageLayout::eGeneral,
       vk::ImageAspectFlagBits::eColor);
 
@@ -550,22 +553,6 @@ void WorldRenderer::generateTerrain()
         {params.chunk});
 
       commandBuffer.dispatch((glmExtent.x + 31) / 32, (glmExtent.y + 31) / 32, 1);
-    }
-    {
-      std::array bufferBarriers = {vk::BufferMemoryBarrier2{
-        .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-        .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-        .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-        .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
-        .buffer = lightsBuffer.get(),
-        .size = vk::WholeSize}};
-
-      vk::DependencyInfo dependencyInfo = {
-        .dependencyFlags = vk::DependencyFlagBits::eByRegion,
-        .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
-        .pBufferMemoryBarriers = bufferBarriers.data()};
-
-      commandBuffer.pipelineBarrier2(dependencyInfo);
     }
     {
       auto shaderInfo = etna::get_shader_program("lights_displacement");
@@ -838,6 +825,38 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
       auto& currentHistogramBuffer = histogramBuffer->get();
       auto& currentDistributionBuffer = distributionBuffer->get();
       auto& currentHistogramInfo = histogramInfoBuffer->get();
+
+      {
+        std::array bufferBarriers = {
+          vk::BufferMemoryBarrier2{
+            .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+            .srcAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
+            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .buffer = currentHistogramBuffer.get(),
+            .size = vk::WholeSize},
+          vk::BufferMemoryBarrier2{
+            .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+            .srcAccessMask = vk::AccessFlagBits2::eShaderRead,
+            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .buffer = currentDistributionBuffer.get(),
+            .size = vk::WholeSize},
+          vk::BufferMemoryBarrier2{
+            .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+            .srcAccessMask = vk::AccessFlagBits2::eShaderRead,
+            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .buffer = currentHistogramInfo.get(),
+            .size = vk::WholeSize}};
+
+        vk::DependencyInfo dependencyInfo = {
+          .dependencyFlags = vk::DependencyFlagBits::eByRegion,
+          .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
+          .pBufferMemoryBarriers = bufferBarriers.data()};
+
+        cmd_buf.pipelineBarrier2(dependencyInfo);
+      }
 
       cmd_buf.fillBuffer(currentHistogramBuffer.get(), 0, vk::WholeSize, 0);
       cmd_buf.fillBuffer(currentDistributionBuffer.get(), 0, vk::WholeSize, 0);
