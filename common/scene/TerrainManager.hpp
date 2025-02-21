@@ -1,61 +1,15 @@
 #pragma once
 
-#include <filesystem>
-
-#include <glm/glm.hpp>
-#include <tiny_gltf.h>
-#include <etna/Buffer.hpp>
-#include <etna/BlockingTransferHelper.hpp>
-#include <etna/VertexInput.hpp>
+#include "SceneManager.hpp"
+#include <cstdint>
 
 
-// Bounds for each render element
-struct Bounds
-{
-  glm::vec3 origin;
-  glm::vec3 extents;
-};
-
-// A single render element (relem) corresponds to a single draw call
-// of a certain pipeline with specific bindings (including material data)
-struct RenderElement
-{
-  std::uint32_t vertexOffset;
-  std::uint32_t indexOffset;
-  std::uint32_t indexCount;
-
-
-  auto operator<=>(const RenderElement& other) const = default;
-  // Not implemented!
-  // Material* material;
-};
-
-struct HashRenderElement
-{
-  std::size_t operator()(const RenderElement& render_element) const
-  {
-    return std::hash<std::uint32_t>()(render_element.indexCount) ^
-      std::hash<std::uint32_t>()(render_element.indexOffset) ^
-      std::hash<std::uint32_t>()(render_element.vertexOffset);
-  }
-};
-
-// A mesh is a collection of relems. A scene may have the same mesh
-// located in several different places, so a scene consists of **instances**,
-// not meshes.
-struct Mesh
-{
-  std::uint32_t firstRelem;
-  std::uint32_t relemCount;
-};
-
-class SceneManager
+class TerrainManager
 {
 public:
-  SceneManager();
+  TerrainManager();
 
-  void selectScene(std::filesystem::path path);
-  void selectBakedScene(std::filesystem::path path);
+  void loadTerrain();
 
   // Every instance is a mesh drawn with a certain transform
   std::span<const glm::mat4x4> getInstanceMatrices() { return instanceMatrices; }
@@ -75,7 +29,6 @@ public:
   etna::VertexByteStreamFormatDescription getVertexFormatDescription();
 
 private:
-  std::optional<tinygltf::Model> loadModel(std::filesystem::path path);
 
   struct Vertex
   {
@@ -84,6 +37,7 @@ private:
     // First 2 floats are tex coords, 3rd is a packed tangent, 4th is padding
     glm::vec4 texCoordAndTangentAndPadding;
   };
+
   static_assert(sizeof(Vertex) == sizeof(float) * 8);
 
   struct ProcessedInstances
@@ -101,21 +55,16 @@ private:
     std::vector<Bounds> bounds;
   };
 
-  struct BakedMeshes
-  {
-    std::span<const Vertex> vertices;
-    std::span<const std::uint32_t> indices;
-    std::vector<RenderElement> relems;
-    std::vector<Mesh> meshes;
-    std::vector<Bounds> bounds;
-  };
-  ProcessedInstances processInstances(const tinygltf::Model& model) const;
-  ProcessedMeshes processMeshes(const tinygltf::Model& model) const;
-  BakedMeshes processBakedMeshes(const tinygltf::Model& model) const;
+  ProcessedInstances processInstances() const;
+  ProcessedMeshes processMeshes() const;
   void uploadData(std::span<const Vertex> vertices, std::span<const std::uint32_t>);
 
 private:
-  tinygltf::TinyGLTF loader;
+
+  uint32_t clipmapLevels;
+  uint32_t vertexGridSize; // should be 2^k - 1
+  uint32_t vertexBlockSize; // almost always (vertexGridSize + 1) / 4
+
   std::unique_ptr<etna::OneShotCmdMgr> oneShotCommands;
   etna::BlockingTransferHelper transferHelper;
 
