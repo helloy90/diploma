@@ -1,23 +1,58 @@
 #include "TerrainManager.hpp"
 
+#include <cstdint>
 #include <etna/GlobalContext.hpp>
+#include <glm/fwd.hpp>
+#include <vector>
 
 
-TerrainManager::TerrainManager()
-  : clipmapLevels()
+TerrainManager::TerrainManager(uint32_t levels, uint32_t vertex_grid_size)
+  : clipmapLevels(levels)
+  , vertexGridSize(vertex_grid_size)
   , oneShotCommands{etna::get_context().createOneShotCmdMgr()}
-  , transferHelper{etna::BlockingTransferHelper::CreateInfo{.stagingSize = 4096 * 4096 * 4}}
 {
+  vertexTileSize = (vertex_grid_size + 1) / 4;
+  // staging size is overkill, meshes used for clipmap will be smaller
+  transferHelper =
+    std::make_unique<etna::BlockingTransferHelper>(etna::BlockingTransferHelper::CreateInfo{
+      .stagingSize = vertexGridSize * vertexGridSize * sizeof(Vertex)});
 }
 
-TerrainManager::ProcessedMeshes TerrainManager::processMeshes() const
+TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 {
-    return {};
+  // this is probably ineffective
+
+  ProcessedMeshes result;
+
+  // uint32_t gridSize = vertexGridSize - 1;
+  // uint32_t tileSize = vertexTileSize - 1;
+
+  {
+    //using 1 square tile, 4 filling meshes between tiles, 4 corner meshes (so no rotation needed)
+    std::size_t vertexAmount = vertexTileSize * vertexTileSize + vertexTileSize * 3 * 4 + (2 * vertexTileSize + 1) * 2 * 4;
+    result.vertices.reserve(vertexAmount);
+    result.indices.reserve(vertexAmount * 6);
+  }
+
+  for (uint32_t y = 0; y < vertexTileSize; y++) {
+    for (uint32_t x = 0; x < vertexTileSize; x++) {
+      auto& vertex = result.vertices.emplace_back();
+      vertex.positionAndTexcoord = glm::vec4(x, y, 0, 0); //texcoords are 0 for now
+    }
+  }
+
+  for (uint32_t y = 0; y < vertexTileSize; y++) {
+    for (uint32_t x = 0; x < vertexTileSize; x++) {
+      // uint32_t quadIndex = 0;
+      // auto& index = result.indices.emplace_back();
+    }
+  }
+  return {};
 }
 
 TerrainManager::ProcessedInstances TerrainManager::processInstances() const
 {
-    return {};
+  return {};
 }
 
 void TerrainManager::uploadData(
@@ -37,8 +72,8 @@ void TerrainManager::uploadData(
     .name = "unifiedTerrainIbuf",
   });
 
-  transferHelper.uploadBuffer<Vertex>(*oneShotCommands, unifiedVbuf, 0, vertices);
-  transferHelper.uploadBuffer<std::uint32_t>(*oneShotCommands, unifiedIbuf, 0, indices);
+  transferHelper->uploadBuffer<Vertex>(*oneShotCommands, unifiedVbuf, 0, vertices);
+  transferHelper->uploadBuffer<std::uint32_t>(*oneShotCommands, unifiedIbuf, 0, indices);
 }
 
 void TerrainManager::loadTerrain()
@@ -47,7 +82,7 @@ void TerrainManager::loadTerrain()
   instanceMatrices = std::move(instMats);
   instanceMeshes = std::move(instMeshes);
 
-  auto [verts, inds, relems, meshs, bounds] = processMeshes();
+  auto [verts, inds, relems, meshs, bounds] = initializeMeshes();
 
   renderElements = std::move(relems);
   meshes = std::move(meshs);
@@ -71,3 +106,4 @@ etna::VertexByteStreamFormatDescription TerrainManager::getVertexFormatDescripti
       },
     }};
 }
+

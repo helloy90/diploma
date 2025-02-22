@@ -10,6 +10,7 @@
 #include <etna/OneShotCmdMgr.hpp>
 
 
+
 SceneManager::SceneManager()
   : oneShotCommands{etna::get_context().createOneShotCmdMgr()}
   , transferHelper{etna::BlockingTransferHelper::CreateInfo{.stagingSize = 4096 * 4096 * 4}}

@@ -24,7 +24,7 @@ WorldRenderer::WorldRenderer()
   , maxInstancesInScene{4096}
   , binsAmount(128)
   , wireframeEnabled(false)
-  , tonemappingEnabled(true)
+  , tonemappingEnabled(false)
 {
 }
 

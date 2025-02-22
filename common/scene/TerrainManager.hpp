@@ -1,13 +1,18 @@
 #pragma once
 
-#include "SceneManager.hpp"
-#include <cstdint>
+#include <span>
+
+#include <etna/Buffer.hpp>
+#include <etna/BlockingTransferHelper.hpp>
+#include <etna/VertexInput.hpp>
+
+#include "RenderStructs.hpp"
 
 
 class TerrainManager
 {
 public:
-  TerrainManager();
+  TerrainManager(uint32_t levels, uint32_t vertex_grid_size);
 
   void loadTerrain();
 
@@ -29,16 +34,13 @@ public:
   etna::VertexByteStreamFormatDescription getVertexFormatDescription();
 
 private:
-
   struct Vertex
   {
-    // First 3 floats are position, 4th float is a packed normal
-    glm::vec4 positionAndNormal;
-    // First 2 floats are tex coords, 3rd is a packed tangent, 4th is padding
-    glm::vec4 texCoordAndTangentAndPadding;
+    // First 2 floats are position, last 2 float are texcoords
+    glm::vec4 positionAndTexcoord;
   };
 
-  static_assert(sizeof(Vertex) == sizeof(float) * 8);
+  static_assert(sizeof(Vertex) == sizeof(float) * 4);
 
   struct ProcessedInstances
   {
@@ -55,18 +57,20 @@ private:
     std::vector<Bounds> bounds;
   };
 
+
+  uint32_t positionToIndexInTile(uint32_t x, uint32_t y){return y * vertexTileSize + x;};
+
   ProcessedInstances processInstances() const;
-  ProcessedMeshes processMeshes() const;
+  ProcessedMeshes initializeMeshes() const;
   void uploadData(std::span<const Vertex> vertices, std::span<const std::uint32_t>);
 
 private:
-
   uint32_t clipmapLevels;
   uint32_t vertexGridSize; // should be 2^k - 1
-  uint32_t vertexBlockSize; // almost always (vertexGridSize + 1) / 4
+  uint32_t vertexTileSize; // almost always (vertexGridSize + 1) / 4
 
   std::unique_ptr<etna::OneShotCmdMgr> oneShotCommands;
-  etna::BlockingTransferHelper transferHelper;
+  std::unique_ptr<etna::BlockingTransferHelper> transferHelper;
 
   std::vector<RenderElement> renderElements;
   std::vector<Mesh> meshes;
