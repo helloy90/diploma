@@ -37,6 +37,7 @@ private:
   struct Vertex
   {
     // First 2 floats are position, last 2 float are texcoords
+    // normals computed in shader
     glm::vec4 positionAndTexcoord;
   };
 
@@ -57,8 +58,7 @@ private:
     std::vector<Bounds> bounds;
   };
 
-
-  uint32_t positionToIndexInTile(uint32_t x, uint32_t y){return y * vertexTileSize + x;};
+  uint32_t positionToIndexInTile(uint32_t x, uint32_t y) const { return y * vertexTileSize + x; };
 
   ProcessedInstances processInstances() const;
   ProcessedMeshes initializeMeshes() const;
