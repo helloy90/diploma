@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 
 #include "scene/SceneManager.hpp"
+#include "scene/TerrainManager.hpp"
 #include "wsi/Keyboard.hpp"
 
 #include "FramePacket.hpp"
@@ -68,6 +69,7 @@ private:
 
 private:
   std::unique_ptr<SceneManager> sceneMgr;
+  std::unique_ptr<TerrainManager> terrainMgr;
 
   vk::Format renderTargetFormat;
 

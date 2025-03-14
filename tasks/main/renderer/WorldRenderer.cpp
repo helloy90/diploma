@@ -19,6 +19,7 @@
 
 WorldRenderer::WorldRenderer()
   : sceneMgr{std::make_unique<SceneManager>()}
+  , terrainMgr{std::make_unique<TerrainManager>(5, 63)}
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , maxNumberOfSamples(16)
   , maxInstancesInScene{4096}
@@ -120,6 +121,7 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 void WorldRenderer::loadScene(std::filesystem::path path)
 {
   sceneMgr->selectBakedScene(path);
+  terrainMgr->loadTerrain();
 }
 
 void WorldRenderer::loadShaders()
