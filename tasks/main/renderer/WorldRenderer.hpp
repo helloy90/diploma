@@ -50,7 +50,6 @@ private:
   void updateConstants(etna::Buffer& constants);
 
 private:
-  // std::unique_ptr<SceneManager> sceneMgr;
   std::unique_ptr<TerrainManager> terrainMgr;
 
   vk::Format renderTargetFormat;

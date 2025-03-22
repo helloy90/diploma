@@ -16,7 +16,7 @@ public:
 
   void loadTerrain();
 
-  void moveClipmap(glm::vec3 camera_position);
+  void moveClipmap(vk::CommandBuffer cmd_buf, glm::vec3 camera_position);
 
   // Every instance is a mesh drawn with a certain transform
   std::span<const glm::mat4x4> getInstanceMatrices() { return instanceMatrices; }

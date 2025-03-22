@@ -1,4 +1,6 @@
 #include "TerrainManager.hpp"
+#include "SceneManager.hpp"
+#include "spdlog/spdlog.h"
 
 #include <vector>
 
@@ -6,6 +8,8 @@
 
 #include <etna/GlobalContext.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
 
 TerrainManager::TerrainManager(uint32_t levels, uint32_t vertex_grid_size)
   : clipmapLevels(levels)
@@ -34,7 +38,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
   {
     // using 1 square tile, 4 filling meshes between tiles, 1 corner meshes (is rotated when
-    // needed), cross mesh and seam mesh
+    // needed), cross mesh and (not initialized for now) seam mesh
     std::size_t vertexAmount = vertexTileSize * vertexTileSize + vertexTileSize * 3 * 4 +
       (2 * vertexTileSize + 1) * 2 * 4 /* + ... */;
     result.vertices.reserve(vertexAmount);
@@ -57,11 +61,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
     // horizontal
     {
-      auto relem = RenderElement{
-        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 0};
-
       for (int32_t x = -static_cast<int32_t>(tileSize);
            x < static_cast<int32_t>(vertexTileSize + 1);
            x++)
@@ -72,6 +71,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           vertex.positionAndTexcoord = {x, y, 0, 0};
         }
       }
+
+      result.bounds.emplace_back(Bounds{
+        .minPos = {-static_cast<int32_t>(tileSize), 0, 0, 0},
+        .maxPos = {static_cast<int32_t>(vertexTileSize), 1, 0, 0}});
 
       for (uint32_t i = 0; i < tileSize * 2 + 1; i++)
       {
@@ -89,15 +92,23 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      relem.indexCount = (tileSize * 2 + 1) * 6;
+      result.relems.emplace_back(RenderElement{
+        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+        .indexCount = (tileSize * 2 + 1) * 6});
 
       spdlog::info(
         "Cross mesh, horizonal segment - Index count - {} for relem with vertex offset {}, index "
         "offset "
         "{}",
-        relem.indexCount,
-        relem.vertexOffset,
-        relem.indexOffset);
+        result.relems.back().indexCount,
+        result.relems.back().vertexOffset,
+        result.relems.back().indexOffset);
+
+      spdlog::info(
+        "Bounds of this relem - min: {}, max: {}",
+        glm::to_string(result.bounds.back().minPos),
+        glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition = tileSize * 2 * 2 + 3 + 1;
       ETNA_VERIFYF(
@@ -110,16 +121,12 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         currentOffsetAddition);
       currentMaxIndex = -1;
 
-      result.relems.emplace_back(relem);
       indexValueOffset += currentOffsetAddition;
     }
 
     // vertical
     {
-      auto relem = RenderElement{
-        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 0};
+
 
       for (int32_t y = -static_cast<int32_t>(tileSize);
            y < static_cast<int32_t>(vertexTileSize + 1);
@@ -131,6 +138,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           vertex.positionAndTexcoord = {x, y, 0, 0};
         }
       }
+
+      result.bounds.emplace_back(Bounds{
+        .minPos = {0, -static_cast<int32_t>(tileSize), 0, 0},
+        .maxPos = {1, static_cast<int32_t>(vertexTileSize), 0, 0}});
 
       for (uint32_t i = 0; i < tileSize * 2 + 1; i++)
       {
@@ -148,15 +159,23 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      relem.indexCount = (tileSize * 2 + 1) * 6;
+      result.relems.emplace_back(RenderElement{
+        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+        .indexCount = (tileSize * 2 + 1) * 6});
 
       spdlog::info(
         "Cross mesh, vertical segment - Index count - {} for relem with vertex offset {}, index "
         "offset "
         "{}",
-        relem.indexCount,
-        relem.vertexOffset,
-        relem.indexOffset);
+        result.relems.back().indexCount,
+        result.relems.back().vertexOffset,
+        result.relems.back().indexOffset);
+
+      spdlog::info(
+        "Bounds of this relem - min: {}, max: {}",
+        glm::to_string(result.bounds.back().minPos),
+        glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition = tileSize * 2 * 2 + 3 + 1;
       ETNA_VERIFYF(
@@ -170,7 +189,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         currentOffsetAddition);
       currentMaxIndex = -1;
 
-      result.relems.emplace_back(relem);
       indexValueOffset += currentOffsetAddition;
     }
   }
@@ -181,11 +199,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
       .relemCount = static_cast<std::uint32_t>(1)});
 
-    auto relem = RenderElement{
-      .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-      .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-      .indexCount = 0};
-
     for (uint32_t y = 0; y < vertexTileSize; y++)
     {
       for (uint32_t x = 0; x < vertexTileSize; x++)
@@ -194,6 +207,9 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         vertex.positionAndTexcoord = glm::vec4(x, y, 0, 0); // texcoords are 0 for now
       }
     }
+
+    result.bounds.emplace_back(
+      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexTileSize - 1, vertexTileSize - 1, 0, 0}});
 
     for (uint32_t y = 0; y < tileSize; y++)
     {
@@ -215,13 +231,22 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
     }
-    relem.indexCount = tileSize * tileSize * 6;
+
+    result.relems.emplace_back(RenderElement{
+      .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+      .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+      .indexCount = tileSize * tileSize * 6});
 
     spdlog::info(
       "Square mesh - Index count - {} for relem with vertex offset {}, index offset {}",
-      relem.indexCount,
-      relem.vertexOffset,
-      relem.indexOffset);
+      result.relems.back().indexCount,
+      result.relems.back().vertexOffset,
+      result.relems.back().indexOffset);
+
+    spdlog::info(
+      "Bounds of this relem - min: {}, max: {}",
+      glm::to_string(result.bounds.back().minPos),
+      glm::to_string(result.bounds.back().maxPos));
 
     currentOffsetAddition = positionToIndexInTile(tileSize, tileSize) + 1;
     ETNA_VERIFYF(
@@ -234,8 +259,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentMaxIndex + 1,
       currentOffsetAddition);
     currentMaxIndex = -1;
-
-    result.relems.emplace_back(relem);
     indexValueOffset += currentOffsetAddition;
   }
 
@@ -248,10 +271,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
     uint32_t offset = tileSize;
     {
       // right
-      auto relem = RenderElement{
-        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 0};
 
       for (uint32_t x = 0; x < vertexTileSize; x++)
       {
@@ -262,6 +281,9 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           vertex.positionAndTexcoord = {offset + x + 1, y, 0, 0};
         }
       }
+
+      result.bounds.emplace_back(
+        Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexTileSize - 1, 1, 0, 0}});
 
       for (uint32_t i = 0; i < tileSize; i++)
       {
@@ -281,14 +303,22 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      relem.indexCount = tileSize * 6;
+      result.relems.emplace_back(RenderElement{
+        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+        .indexCount = tileSize * 6});
 
       spdlog::info(
         "Filler mesh, right arm - Index count - {} for relem with vertex offset {}, index offset "
         "{}",
-        relem.indexCount,
-        relem.vertexOffset,
-        relem.indexOffset);
+        result.relems.back().indexCount,
+        result.relems.back().vertexOffset,
+        result.relems.back().indexOffset);
+
+      spdlog::info(
+        "Bounds of this relem - min: {}, max: {}",
+        glm::to_string(result.bounds.back().minPos),
+        glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition = (tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
@@ -301,16 +331,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         currentOffsetAddition);
       currentMaxIndex = -1;
 
-      result.relems.emplace_back(relem);
       indexValueOffset += currentOffsetAddition;
     }
 
     {
       // top
-      auto relem = RenderElement{
-        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 0};
 
       for (uint32_t y = 0; y < vertexTileSize; y++)
       {
@@ -320,6 +345,9 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           vertex.positionAndTexcoord = {x, offset + y + 1, 0, 0};
         }
       }
+
+      result.bounds.emplace_back(
+        Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {1, vertexTileSize - 1, 0, 0}});
 
       for (uint32_t i = 0; i < tileSize; i++)
       {
@@ -340,14 +368,22 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      relem.indexCount = tileSize * 6;
+      result.relems.emplace_back(RenderElement{
+        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+        .indexCount = tileSize * 6});
 
       spdlog::info(
         "Filler mesh, top arm - Index count - {} for relem with vertex offset {}, index offset "
         "{}",
-        relem.indexCount,
-        relem.vertexOffset,
-        relem.indexOffset);
+        result.relems.back().indexCount,
+        result.relems.back().vertexOffset,
+        result.relems.back().indexOffset);
+
+      spdlog::info(
+        "Bounds of this relem - min: {}, max: {}",
+        glm::to_string(result.bounds.back().minPos),
+        glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition = (1 + tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
@@ -362,16 +398,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         currentOffsetAddition);
       currentMaxIndex = -1;
 
-      result.relems.emplace_back(relem);
       indexValueOffset += currentOffsetAddition;
     }
 
     {
       // left
-      auto relem = RenderElement{
-        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 0};
 
       for (uint32_t x = 0; x < vertexTileSize; x++)
       {
@@ -381,6 +412,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           vertex.positionAndTexcoord = {-int32_t(offset + x), y, 0, 0};
         }
       }
+
+      result.bounds.emplace_back(Bounds{
+        .minPos = {-int32_t(offset + 0), 0, 0, 0},
+        .maxPos = {-int32_t(offset + vertexTileSize - 1), 1, 0, 0}});
 
       for (uint32_t i = 0; i < tileSize; i++)
       {
@@ -400,19 +435,28 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      relem.indexCount = tileSize * 6;
+      result.relems.emplace_back(RenderElement{
+        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+        .indexCount = tileSize * 6});
 
       spdlog::info(
         "Filler mesh, left arm - Index count - {} for relem with vertex offset {}, index offset "
         "{}",
-        relem.indexCount,
-        relem.vertexOffset,
-        relem.indexOffset);
+        result.relems.back().indexCount,
+        result.relems.back().vertexOffset,
+        result.relems.back().indexOffset);
+
+      spdlog::info(
+        "Bounds of this relem - min: {}, max: {}",
+        glm::to_string(result.bounds.back().minPos),
+        glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition = (2 + tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from tom arm relem of filler mesh + 1 - "
+        "Wrong index offset will be added! Current offset from tom arm relem of filler mesh + 1 "
+        "- "
         "{}, maximum "
         "index for current "
         "mesh + 1 - "
@@ -422,16 +466,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         currentOffsetAddition);
       currentMaxIndex = -1;
 
-      result.relems.emplace_back(relem);
       indexValueOffset += currentOffsetAddition;
     }
 
     {
       // bottom
-      auto relem = RenderElement{
-        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 0};
 
       for (uint32_t y = 0; y < vertexTileSize; y++)
       {
@@ -441,6 +480,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           vertex.positionAndTexcoord = {x, -int32_t(offset + y), 0, 0};
         }
       }
+
+      result.bounds.emplace_back(Bounds{
+        .minPos = {0, -int32_t(offset + 0), 0, 0},
+        .maxPos = {1, -int32_t(offset + vertexTileSize - 1), 0, 0}});
 
       for (uint32_t i = 0; i < tileSize; i++)
       {
@@ -461,19 +504,29 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      relem.indexCount = tileSize * 6;
+      result.relems.emplace_back(RenderElement{
+        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+        .indexCount = tileSize * 6});
 
       spdlog::info(
-        "Filler mesh, bottom arm - Index count - {} for relem with vertex offset {}, index offset "
+        "Filler mesh, bottom arm - Index count - {} for relem with vertex offset {}, index "
+        "offset "
         "{}",
-        relem.indexCount,
-        relem.vertexOffset,
-        relem.indexOffset);
+        result.relems.back().indexCount,
+        result.relems.back().vertexOffset,
+        result.relems.back().indexOffset);
+
+      spdlog::info(
+        "Bounds of this relem - min: {}, max: {}",
+        glm::to_string(result.bounds.back().minPos),
+        glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition = (3 + tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from left arm relem of filler mesh + 1 - "
+        "Wrong index offset will be added! Current offset from left arm relem of filler mesh + 1 "
+        "- "
         "{}, maximum "
         "index for current "
         "mesh + 1 - "
@@ -483,7 +536,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         currentOffsetAddition);
       currentMaxIndex = -1;
 
-      result.relems.emplace_back(relem);
       indexValueOffset += currentOffsetAddition;
     }
   }
@@ -497,10 +549,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
     glm::vec4 vertexOffset = {-0.5 * (vertexGridSize + 1), -0.5 * (vertexGridSize + 1), 0, 0};
     // vertical
     {
-      auto relem = RenderElement{
-        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 0};
 
       for (int32_t y = vertexGridSize; y >= 0; y--)
       {
@@ -510,6 +558,9 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           vertex.positionAndTexcoord = glm::vec4(x, y, 0, 0) + vertexOffset;
         }
       }
+
+      result.bounds.emplace_back(
+        Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {1, vertexGridSize, 0, 0}});
 
       for (uint32_t i = 0; i < vertexGridSize; i++)
       {
@@ -526,15 +577,23 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      relem.indexCount = 6 * (vertexGridSize + 1);
+      result.relems.emplace_back(RenderElement{
+        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+        .indexCount = 6 * (vertexGridSize + 1)});
 
       spdlog::info(
         "Trim mesh, vertical segment - Index count - {} for relem with vertex offset {}, index "
         "offset "
         "{}",
-        relem.indexCount,
-        relem.vertexOffset,
-        relem.indexOffset);
+        result.relems.back().indexCount,
+        result.relems.back().vertexOffset,
+        result.relems.back().indexOffset);
+
+      spdlog::info(
+        "Bounds of this relem - min: {}, max: {}",
+        glm::to_string(result.bounds.back().minPos),
+        glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition = vertexGridSize * 2 + 1; // because connected in the same mesh
       ETNA_VERIFYF(
@@ -548,16 +607,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         currentOffsetAddition);
       currentMaxIndex = -1;
 
-      result.relems.emplace_back(relem);
       indexValueOffset += currentOffsetAddition;
     }
 
     // horizontal
     {
-      auto relem = RenderElement{
-        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
-        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 0};
 
       for (uint32_t x = 1; x < vertexGridSize + 1; x++)
       {
@@ -567,6 +621,9 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           vertex.positionAndTexcoord = glm::vec4(x, y, 0, 0) + vertexOffset;
         }
       }
+
+      result.bounds.emplace_back(
+        Bounds{.minPos = {1, 0, 0, 0}, .maxPos = {vertexGridSize, 1, 0, 0}});
 
       for (uint32_t i = 0; i < vertexGridSize - 1; i++)
       {
@@ -583,15 +640,23 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      relem.indexCount = 6 * (vertexGridSize - 1);
+      result.relems.emplace_back(RenderElement{
+        .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
+        .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
+        .indexCount = 6 * (vertexGridSize - 1)});
 
       spdlog::info(
         "Trim mesh, horizontal segment - Index count - {} for relem with vertex offset {}, index "
         "offset "
         "{}",
-        relem.indexCount,
-        relem.vertexOffset,
-        relem.indexOffset);
+        result.relems.back().indexCount,
+        result.relems.back().vertexOffset,
+        result.relems.back().indexOffset);
+
+      spdlog::info(
+        "Bounds of this relem - min: {}, max: {}",
+        glm::to_string(result.bounds.back().minPos),
+        glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition = (vertexGridSize - 1) * 2 + 1 + 1;
       ETNA_VERIFYF(
@@ -605,7 +670,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         currentOffsetAddition);
       currentMaxIndex = -1;
 
-      result.relems.emplace_back(relem);
       indexValueOffset += currentOffsetAddition;
     }
   }
@@ -713,7 +777,7 @@ void TerrainManager::loadTerrain()
   // uploadData(verts, inds);
 }
 
-void TerrainManager::moveClipmap(glm::vec3) {}
+void TerrainManager::moveClipmap(vk::CommandBuffer, glm::vec3) {}
 
 etna::VertexByteStreamFormatDescription TerrainManager::getVertexFormatDescription()
 {
