@@ -33,6 +33,15 @@ public:
   vk::Buffer getVertexBuffer() { return unifiedVbuf.get(); }
   vk::Buffer getIndexBuffer() { return unifiedIbuf.get(); }
 
+  etna::Buffer& getRelemsBuffer() { return unifiedRelemsbuf; }
+  etna::Buffer& getBoundsBuffer() { return unifiedBoundsbuf; }
+  etna::Buffer& getMeshesBuffer() { return unifiedMeshesbuf; }
+  etna::Buffer& getInstanceMeshesBuffer() { return unifiedInstanceMeshesbuf; }
+  etna::Buffer& getInstanceMatricesBuffer() { return unifiedInstanceMatricesbuf; }
+  etna::Buffer& getRelemInstanceOffsetsBuffer() { return unifiedRelemInstanceOffsetsbuf; }
+  etna::Buffer& getDrawInstanceIndicesBuffer() { return unifiedDrawInstanceIndicesbuf; }
+  etna::Buffer& getDrawCommandsBuffer() { return unifiedDrawCommandsbuf; }
+
   etna::VertexByteStreamFormatDescription getVertexFormatDescription();
 
 private:
@@ -82,4 +91,15 @@ private:
 
   etna::Buffer unifiedVbuf;
   etna::Buffer unifiedIbuf;
+
+  etna::Buffer unifiedRelemsbuf;
+  etna::Buffer unifiedBoundsbuf;
+  etna::Buffer unifiedMeshesbuf;
+  etna::Buffer unifiedInstanceMatricesbuf;
+  etna::Buffer unifiedInstanceMeshesbuf;
+  etna::Buffer unifiedRelemInstanceOffsetsbuf;
+
+  etna::Buffer unifiedDrawInstanceIndicesbuf;
+
+  etna::Buffer unifiedDrawCommandsbuf;
 };

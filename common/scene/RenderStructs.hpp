@@ -2,8 +2,6 @@
 
 #include <glm/glm.hpp>
 
-#include "resource/Material.hpp"
-
 // Bounds for each render element
 struct Bounds
 {
@@ -20,7 +18,7 @@ struct RenderElement
   std::uint32_t indexOffset;
   std::uint32_t indexCount;
 
-  Material::Id material = Material::Id::Invalid;
+  // Material::Id material = Material::Id::Invalid;
 
   auto operator<=>(const RenderElement& other) const = default;
 };
@@ -48,7 +46,7 @@ struct RenderElementGLSLCompat {
   std::uint32_t vertexOffset;
   std::uint32_t indexOffset;
   std::uint32_t indexCount;
-  std::uint32_t material;
+  std::uint32_t _padding0 = 0;
 };
 static_assert(sizeof(RenderElementGLSLCompat) % (sizeof(float) * 4) == 0);
 

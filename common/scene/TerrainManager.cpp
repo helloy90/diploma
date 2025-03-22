@@ -1,5 +1,5 @@
 #include "TerrainManager.hpp"
-#include "SceneManager.hpp"
+#include "etna/Image.hpp"
 #include "spdlog/spdlog.h"
 
 #include <vector>
@@ -744,22 +744,133 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
 void TerrainManager::uploadData(
   std::span<const Vertex> vertices, std::span<const std::uint32_t> indices)
 {
-  unifiedVbuf = etna::get_context().createBuffer(etna::Buffer::CreateInfo{
+  auto& ctx = etna::get_context();
+
+  unifiedVbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
     .size = vertices.size_bytes(),
     .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
+    .memoryUsage = VMA_MEMORY_USAGE_AUTO,
     .name = "unifiedTerrainVbuf",
   });
 
-  unifiedIbuf = etna::get_context().createBuffer(etna::Buffer::CreateInfo{
+  unifiedIbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
     .size = indices.size_bytes(),
     .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
+    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
     .name = "unifiedTerrainIbuf",
   });
 
   transferHelper->uploadBuffer<Vertex>(*oneShotCommands, unifiedVbuf, 0, vertices);
   transferHelper->uploadBuffer<std::uint32_t>(*oneShotCommands, unifiedIbuf, 0, indices);
+  // unifiedRelemsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+  //   .size = renderElements.size() * sizeof(RenderElementGLSLCompat),
+  //   .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+  //   .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  //   .name = "unifiedRelemsbuf"});
+
+  // // maybe unnesessary
+  // std::vector<RenderElementGLSLCompat> renderElementsData;
+  // renderElementsData.reserve(renderElements.size());
+  // for (const auto& relem : renderElements)
+  // {
+  //   renderElementsData.emplace_back(RenderElementGLSLCompat{
+  //     .vertexOffset = relem.vertexOffset,
+  //     .indexOffset = relem.indexOffset,
+  //     .indexCount = relem.indexCount});
+  // }
+
+  // transferHelper.uploadBuffer<RenderElementGLSLCompat>(
+  //   *oneShotCommands, unifiedRelemsbuf, 0, std::span(renderElementsData));
+
+  // unifiedBoundsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+  //   .size = renderElementsBounds.size() * sizeof(Bounds),
+  //   .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+  //   .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  //   .name = "unifiedBoundsbuf"});
+  // unifiedMeshesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+  //   .size = meshes.size() * sizeof(Mesh),
+  //   .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+  //   .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  //   .name = "unifiedMeshesbuf"});
+  // unifiedInstanceMatricesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+  //   .size = instanceMatrices.size() * sizeof(glm::mat4x4),
+  //   .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+  //   .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  //   .name = "unifiedInstanceMatricesbuf"});
+  // unifiedInstanceMeshesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+  //   .size = instanceMeshes.size() * sizeof(std::uint32_t),
+  //   .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+  //   .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  //   .name = "unifiedInstanceMeshesbuf"});
+
+  // transferHelper.uploadBuffer<Bounds>(
+  //   *oneShotCommands, unifiedBoundsbuf, 0, std::span(renderElementsBounds));
+  // transferHelper.uploadBuffer<Mesh>(*oneShotCommands, unifiedMeshesbuf, 0, std::span(meshes));
+  // transferHelper.uploadBuffer<glm::mat4x4>(
+  //   *oneShotCommands, unifiedInstanceMatricesbuf, 0, std::span(instanceMatrices));
+  // transferHelper.uploadBuffer<std::uint32_t>(
+  //   *oneShotCommands, unifiedInstanceMeshesbuf, 0, std::span(instanceMeshes));
+
+  // // filled on GPU when culling
+  // unifiedDrawInstanceIndicesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+  //   .size = instanceMeshes.size() * sizeof(std::uint32_t),
+  //   .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+  //   .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  //   .name = "unifiedDrawInstanceIndicesbuf"});
+
+  // unifiedRelemInstanceOffsetsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+  //   .size = renderElements.size() * sizeof(std::uint32_t),
+  //   .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+  //   .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  //   .name = "unifiedRelemInstanceOffsetsbuf"});
+
+  // std::vector<std::uint32_t> relemInstanceOffsets(renderElements.size(), 0);
+  // // calculate total amounts first
+  // for (const auto& meshIdx : instanceMeshes)
+  // {
+  //   const auto& currentMesh = meshes[meshIdx];
+  //   for (std::uint32_t relemIdx = currentMesh.firstRelem;
+  //        relemIdx < currentMesh.firstRelem + currentMesh.relemCount;
+  //        relemIdx++)
+  //   {
+  //     relemInstanceOffsets[relemIdx]++;
+  //   }
+  // }
+
+  // // then convert amounts to respective offsets
+  // std::uint32_t offset = 0;
+  // std::uint32_t previousAmount = 0;
+  // for (auto& amount : relemInstanceOffsets)
+  // {
+  //   previousAmount = amount;
+  //   amount = offset;
+  //   offset += previousAmount;
+  // }
+
+  // transferHelper.uploadBuffer<std::uint32_t>(
+  //   *oneShotCommands, unifiedRelemInstanceOffsetsbuf, 0, std::span(relemInstanceOffsets));
+
+  // unifiedDrawCommandsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+  //   .size = renderElements.size() * sizeof(vk::DrawIndexedIndirectCommand),
+  //   .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer |
+  //     vk::BufferUsageFlagBits::eIndirectBuffer,
+  //   .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  //   .name = "unifiedDrawCommandsbuf"});
+
+  // std::vector<vk::DrawIndexedIndirectCommand> drawCommands;
+  // drawCommands.reserve(renderElements.size());
+  // for (uint32_t i = 0; i < renderElements.size(); i++)
+  // {
+  //   drawCommands.emplace_back(vk::DrawIndexedIndirectCommand{
+  //     .indexCount = renderElements[i].indexCount,
+  //     .instanceCount = 0,
+  //     .firstIndex = renderElements[i].indexOffset,
+  //     .vertexOffset = static_cast<std::int32_t>(renderElements[i].vertexOffset),
+  //     .firstInstance = relemInstanceOffsets[i]});
+  // }
+
+  // transferHelper.uploadBuffer<vk::DrawIndexedIndirectCommand>(
+  //   *oneShotCommands, unifiedDrawCommandsbuf, 0, std::span(drawCommands));
 }
 
 void TerrainManager::loadTerrain()
