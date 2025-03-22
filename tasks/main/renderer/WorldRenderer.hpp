@@ -10,7 +10,6 @@
 #include <etna/GpuSharedResource.hpp>
 #include <glm/glm.hpp>
 
-#include "scene/SceneManager.hpp"
 #include "scene/TerrainManager.hpp"
 #include "wsi/Keyboard.hpp"
 
@@ -25,7 +24,7 @@ class WorldRenderer
 public:
   WorldRenderer();
 
-  void loadScene(std::filesystem::path path);
+  void loadScene();
   void loadShaders();
   void allocateResources(glm::uvec2 swapchain_resolution);
   void setupRenderPipelines();
@@ -38,14 +37,9 @@ public:
   void update(const FramePacket& packet);
   void drawGui();
   void renderWorld(
-    vk::CommandBuffer cmd_buf, vk::Image target_image); // vk::ImageView target_image_view);
+    vk::CommandBuffer cmd_buf, vk::Image target_image);
 
 private:
-  void renderScene(
-    vk::CommandBuffer cmd_buf,
-    etna::Buffer& constants,
-    vk::PipelineLayout pipeline_layout,
-    etna::Buffer& instance_buffer);
 
   void renderTerrain(
     vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
@@ -53,22 +47,10 @@ private:
   void deferredShading(
     vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
 
-  bool isVisible(const Bounds& bounds, const glm::mat4& proj_view, const glm::mat4& transform);
-
-  void parseInstanceInfo(etna::Buffer& buffer);
-
   void updateConstants(etna::Buffer& constants);
 
-  void tonemappingShaderStart(
-    vk::CommandBuffer cmd_buf,
-    const etna::ComputePipeline& current_pipeline,
-    std::string shader_program,
-    std::vector<etna::Binding> bindings,
-    std::optional<uint32_t> push_constant,
-    glm::uvec2 group_count);
-
 private:
-  std::unique_ptr<SceneManager> sceneMgr;
+  // std::unique_ptr<SceneManager> sceneMgr;
   std::unique_ptr<TerrainManager> terrainMgr;
 
   vk::Format renderTargetFormat;
@@ -89,12 +71,8 @@ private:
 
   UniformParams params;
 
-  std::size_t maxInstancesInScene;
-  std::optional<etna::GpuSharedResource<etna::Buffer>> instanceMatricesBuffer;
   std::optional<etna::GpuSharedResource<etna::Buffer>> constantsBuffer;
-  std::vector<uint32_t> instancesAmount;
 
-  etna::GraphicsPipeline staticMeshPipeline{};
   etna::GraphicsPipeline terrainGenerationPipeline;
   etna::GraphicsPipeline terrainRenderPipeline;
   etna::GraphicsPipeline deferredShadingPipeline;
@@ -108,16 +86,9 @@ private:
   etna::ComputePipeline terrainNormalPipeline;
   etna::ComputePipeline lightDisplacementPipeline;
 
-  etna::ComputePipeline calculateMinMaxPipeline;
-  etna::ComputePipeline histogramPipeline;
-  etna::ComputePipeline processHistogramPipeline;
-  etna::ComputePipeline distributionPipeline;
-  etna::ComputePipeline postprocessComputePipeline;
-
   etna::Sampler terrainSampler;
 
   bool wireframeEnabled;
-  bool tonemappingEnabled;
 
   std::unique_ptr<etna::OneShotCmdMgr> oneShotCommands;
   std::unique_ptr<etna::BlockingTransferHelper> transferHelper;

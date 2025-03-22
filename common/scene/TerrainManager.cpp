@@ -649,24 +649,28 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
     }
   }
 
+  uint32_t scale = 1;
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
+    scale = 1 << level;
     for (uint32_t i = 0; i < 12; i++)
     {
-      result.matrices.emplace_back(glm::scale(identityMat, {level + 1, level + 1, level + 1}));
+      result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
       result.meshes.emplace_back(squareMesh);
     }
   }
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    result.matrices.emplace_back(glm::scale(identityMat, {level + 1, level + 1, level + 1}));
+    scale = 1 << level;
+    result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
     result.meshes.emplace_back(fillerMesh);
   }
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    result.matrices.emplace_back(glm::scale(identityMat, {level + 1, level + 1, level + 1}));
+    scale = 1 << level;
+    result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
     result.meshes.emplace_back(trimMesh);
   }
 
@@ -706,12 +710,10 @@ void TerrainManager::loadTerrain()
   meshes = std::move(meshs);
   renderElementsBounds = std::move(bounds);
 
-  // for (auto index : inds)
-  // {
-  //   std::cout << index << " ";
-  // }
   // uploadData(verts, inds);
 }
+
+void TerrainManager::moveClipmap(glm::vec3) {}
 
 etna::VertexByteStreamFormatDescription TerrainManager::getVertexFormatDescription()
 {
@@ -721,10 +723,6 @@ etna::VertexByteStreamFormatDescription TerrainManager::getVertexFormatDescripti
       etna::VertexByteStreamFormatDescription::Attribute{
         .format = vk::Format::eR32G32B32A32Sfloat,
         .offset = 0,
-      },
-      etna::VertexByteStreamFormatDescription::Attribute{
-        .format = vk::Format::eR32G32B32A32Sfloat,
-        .offset = sizeof(glm::vec4),
       },
     }};
 }

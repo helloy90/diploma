@@ -23,10 +23,9 @@ App::App()
 
   mainCam.lookAt({0, 10, 0}, {10, 0, 10}, {0, 1, 0});
 
-  // note - maybe bad (see shadowmap)
   ImGuiRenderer::enableImGuiForWindow(mainWindow->native());
 
-  renderer->loadScene(GRAPHICS_COURSE_RESOURCES_ROOT "/scenes/Avocado/Avocado_baked.gltf");
+  renderer->loadScene();
 }
 
 void App::run()

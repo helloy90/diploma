@@ -5,8 +5,6 @@
 #include <etna/PipelineManager.hpp>
 #include <etna/Profiling.hpp>
 #include <etna/RenderTargetStates.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_handles.hpp>
 
 #include "etna/DescriptorSet.hpp"
 #include "etna/Etna.hpp"
@@ -18,14 +16,11 @@
 
 
 WorldRenderer::WorldRenderer()
-  : sceneMgr{std::make_unique<SceneManager>()}
-  , terrainMgr{std::make_unique<TerrainManager>(5, 63)}
+  : terrainMgr{std::make_unique<TerrainManager>(5, 63)}
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , maxNumberOfSamples(16)
-  , maxInstancesInScene{4096}
   , binsAmount(128)
   , wireframeEnabled(false)
-  , tonemappingEnabled(false)
 {
 }
 
@@ -62,16 +57,6 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 
   params.terrainInChunks = shader_uvec2(64, 64);
   params.chunk = shader_uvec2(16, 16);
-
-  instanceMatricesBuffer.emplace(
-    ctx.getMainWorkCount(), [&ctx, maxInstancesInScene = this->maxInstancesInScene](std::size_t i) {
-      return ctx.createBuffer(etna::Buffer::CreateInfo{
-        .size = sizeof(glm::mat4x4) * maxInstancesInScene,
-        .bufferUsage = vk::BufferUsageFlagBits::eVertexBuffer |
-          vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-        .memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU,
-        .name = fmt::format("sameInstanceMatrices{}", i)});
-    });
 
   constantsBuffer.emplace(ctx.getMainWorkCount(), [&ctx](std::size_t i) {
     return ctx.createBuffer(etna::Buffer::CreateInfo{
@@ -114,13 +99,10 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
     etna::Sampler::CreateInfo{.filter = vk::Filter::eLinear, .name = "terrain_sampler"});
 
   oneShotCommands = ctx.createOneShotCmdMgr();
-
-  instancesAmount.resize(maxInstancesInScene, 0);
 }
 
-void WorldRenderer::loadScene(std::filesystem::path path)
+void WorldRenderer::loadScene()
 {
-  sceneMgr->selectBakedScene(path);
   terrainMgr->loadTerrain();
 }
 
@@ -166,48 +148,7 @@ void WorldRenderer::loadShaders()
 
 void WorldRenderer::setupRenderPipelines()
 {
-  etna::VertexShaderInputDescription sceneVertexInputDesc{
-    .bindings = {etna::VertexShaderInputDescription::Binding{
-      .byteStreamDescription = sceneMgr->getVertexFormatDescription(),
-    }},
-  };
-
   auto& pipelineManager = etna::get_context().getPipelineManager();
-
-  staticMeshPipeline = {};
-  staticMeshPipeline = pipelineManager.createGraphicsPipeline(
-    "static_mesh_material",
-    etna::GraphicsPipeline::CreateInfo{
-      .vertexShaderInput = sceneVertexInputDesc,
-      .rasterizationConfig =
-        vk::PipelineRasterizationStateCreateInfo{
-          .polygonMode = (wireframeEnabled ? vk::PolygonMode::eLine : vk::PolygonMode::eFill),
-          .cullMode = vk::CullModeFlagBits::eBack,
-          .frontFace = vk::FrontFace::eCounterClockwise,
-          .lineWidth = 1.f,
-        },
-      .blendingConfig =
-        {
-          .attachments =
-            {{
-               .blendEnable = vk::False,
-               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-             },
-             {
-               .blendEnable = vk::False,
-               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-             }},
-          .logicOpEnable = false,
-          .logicOp = {},
-        },
-      .fragmentShaderOutput =
-        {
-          .colorAttachmentFormats = {renderTargetFormat, vk::Format::eR8G8B8A8Snorm},
-          .depthAttachmentFormat = vk::Format::eD32Sfloat,
-        },
-    });
 
   terrainRenderPipeline = pipelineManager.createGraphicsPipeline(
     "terrain_render",
@@ -259,11 +200,6 @@ void WorldRenderer::setupRenderPipelines()
           .depthAttachmentFormat = vk::Format::eD32Sfloat,
         },
     });
-
-  calculateMinMaxPipeline = pipelineManager.createComputePipeline("min_max_calculation", {});
-  histogramPipeline = pipelineManager.createComputePipeline("histogram_calculation", {});
-  processHistogramPipeline = pipelineManager.createComputePipeline("histogram_processing", {});
-  postprocessComputePipeline = pipelineManager.createComputePipeline("postprocess_compute", {});
 }
 
 void WorldRenderer::rebuildRenderPipelines()
@@ -439,7 +375,6 @@ void WorldRenderer::drawGui()
     {
       rebuildRenderPipelines();
     }
-    ImGui::Checkbox("Enable Tonemapping", &tonemappingEnabled);
   }
 
   ImGui::End();
@@ -623,51 +558,6 @@ void WorldRenderer::generateTerrain()
   oneShotCommands->submitAndWait(commandBuffer);
 }
 
-void WorldRenderer::renderScene(
-  vk::CommandBuffer cmd_buf,
-  etna::Buffer& constants,
-  vk::PipelineLayout pipeline_layout,
-  etna::Buffer& instance_buffer)
-{
-  ZoneScoped;
-  if (!sceneMgr->getVertexBuffer())
-    return;
-
-  cmd_buf.bindVertexBuffers(0, {sceneMgr->getVertexBuffer()}, {0});
-  cmd_buf.bindIndexBuffer(sceneMgr->getIndexBuffer(), 0, vk::IndexType::eUint32);
-
-  auto shaderInfo = etna::get_shader_program("static_mesh_material");
-  auto set = etna::create_descriptor_set(
-    shaderInfo.getDescriptorLayoutId(0),
-    cmd_buf,
-    {etna::Binding{0, instance_buffer.genBinding()}, etna::Binding{1, constants.genBinding()}});
-  auto vkSet = set.getVkSet();
-
-  cmd_buf.bindDescriptorSets(
-    vk::PipelineBindPoint::eGraphics, pipeline_layout, 0, 1, &vkSet, 0, nullptr);
-
-  uint32_t offset = 0;
-
-  auto relems = sceneMgr->getRenderElements();
-
-  for (uint32_t i = 0; i < relems.size(); i++)
-  {
-    if (instancesAmount[i] > 0)
-    {
-      cmd_buf.drawIndexed(
-        relems[i].indexCount,
-        instancesAmount[i],
-        relems[i].indexOffset,
-        relems[i].vertexOffset,
-        offset);
-      offset += instancesAmount[i];
-    }
-  }
-
-  // instancesAmount.clear();
-  std::memset(instancesAmount.data(), 0, relems.size() * sizeof(uint32_t));
-}
-
 void WorldRenderer::renderTerrain(
   vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout)
 {
@@ -822,196 +712,6 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
       deferredShading(cmd_buf, currentConstants, deferredShadingPipeline.getVkPipelineLayout());
     }
 
-    if (tonemappingEnabled)
-    {
-      auto& currentHistogramBuffer = histogramBuffer->get();
-      auto& currentDistributionBuffer = distributionBuffer->get();
-      auto& currentHistogramInfo = histogramInfoBuffer->get();
-
-      {
-        std::array bufferBarriers = {
-          vk::BufferMemoryBarrier2{
-            .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-            .srcAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
-            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
-            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
-            .buffer = currentHistogramBuffer.get(),
-            .size = vk::WholeSize},
-          vk::BufferMemoryBarrier2{
-            .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-            .srcAccessMask = vk::AccessFlagBits2::eShaderRead,
-            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
-            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
-            .buffer = currentDistributionBuffer.get(),
-            .size = vk::WholeSize},
-          vk::BufferMemoryBarrier2{
-            .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-            .srcAccessMask = vk::AccessFlagBits2::eShaderRead,
-            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
-            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
-            .buffer = currentHistogramInfo.get(),
-            .size = vk::WholeSize}};
-
-        vk::DependencyInfo dependencyInfo = {
-          .dependencyFlags = vk::DependencyFlagBits::eByRegion,
-          .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
-          .pBufferMemoryBarriers = bufferBarriers.data()};
-
-        cmd_buf.pipelineBarrier2(dependencyInfo);
-      }
-
-      cmd_buf.fillBuffer(currentHistogramBuffer.get(), 0, vk::WholeSize, 0);
-      cmd_buf.fillBuffer(currentDistributionBuffer.get(), 0, vk::WholeSize, 0);
-      cmd_buf.fillBuffer(currentHistogramInfo.get(), 0, vk::WholeSize, 0);
-
-      {
-        std::array bufferBarriers = {
-          vk::BufferMemoryBarrier2{
-            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-            .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-            .dstAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
-            .buffer = currentHistogramBuffer.get(),
-            .size = vk::WholeSize},
-          vk::BufferMemoryBarrier2{
-            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-            .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-            .dstAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
-            .buffer = currentDistributionBuffer.get(),
-            .size = vk::WholeSize},
-          vk::BufferMemoryBarrier2{
-            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-            .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-            .dstAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
-            .buffer = currentHistogramInfo.get(),
-            .size = vk::WholeSize}};
-
-        vk::DependencyInfo dependencyInfo = {
-          .dependencyFlags = vk::DependencyFlagBits::eByRegion,
-          .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
-          .pBufferMemoryBarriers = bufferBarriers.data()};
-
-        cmd_buf.pipelineBarrier2(dependencyInfo);
-      }
-
-      {
-        ETNA_PROFILE_GPU(cmd_buf, tonemapping);
-        tonemappingShaderStart(
-          cmd_buf,
-          calculateMinMaxPipeline,
-          "min_max_calculation",
-          {etna::Binding{0, renderTarget.genBinding({}, vk::ImageLayout::eGeneral)},
-           etna::Binding{1, currentHistogramInfo.genBinding()}},
-          binsAmount,
-          {(resolution.x + 31) / 32, (resolution.y + 31) / 32});
-
-        {
-          std::array bufferBarriers = {vk::BufferMemoryBarrier2{
-            .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-            .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-            .buffer = currentHistogramInfo.get(),
-            .size = vk::WholeSize}};
-
-          vk::DependencyInfo dependencyInfo = {
-            .dependencyFlags = vk::DependencyFlagBits::eByRegion,
-            .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
-            .pBufferMemoryBarriers = bufferBarriers.data()};
-
-          cmd_buf.pipelineBarrier2(dependencyInfo);
-        }
-
-        tonemappingShaderStart(
-          cmd_buf,
-          histogramPipeline,
-          "histogram_calculation",
-          {etna::Binding{0, renderTarget.genBinding({}, vk::ImageLayout::eGeneral)},
-           etna::Binding{1, currentHistogramBuffer.genBinding()},
-           etna::Binding{2, currentHistogramInfo.genBinding()}},
-          binsAmount,
-          {(resolution.x + 31) / 32, (resolution.y + 31) / 32});
-
-        {
-          std::array bufferBarriers = {
-            vk::BufferMemoryBarrier2{
-              .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-              .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-              .buffer = currentHistogramBuffer.get(),
-              .size = vk::WholeSize},
-            vk::BufferMemoryBarrier2{
-              .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-              .srcAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
-              .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-              .dstAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
-              .buffer = currentHistogramInfo.get(),
-              .size = vk::WholeSize}};
-
-          vk::DependencyInfo dependencyInfo = {
-            .dependencyFlags = vk::DependencyFlagBits::eByRegion,
-            .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
-            .pBufferMemoryBarriers = bufferBarriers.data()};
-
-          cmd_buf.pipelineBarrier2(dependencyInfo);
-        }
-
-        tonemappingShaderStart(
-          cmd_buf,
-          processHistogramPipeline,
-          "histogram_processing",
-          {etna::Binding{0, currentHistogramBuffer.genBinding()},
-           etna::Binding{1, currentDistributionBuffer.genBinding()},
-           etna::Binding{2, currentHistogramInfo.genBinding()}},
-          binsAmount,
-          {1, 1});
-
-        {
-          std::array bufferBarriers = {
-            vk::BufferMemoryBarrier2{
-              .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-              .srcAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
-              .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-              .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
-              .buffer = currentDistributionBuffer.get(),
-              .size = vk::WholeSize},
-            vk::BufferMemoryBarrier2{
-              .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-              .srcAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
-              .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-              .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
-              .buffer = currentHistogramInfo.get(),
-              .size = vk::WholeSize}};
-
-          vk::DependencyInfo dependencyInfo = {
-            .dependencyFlags = vk::DependencyFlagBits::eByRegion,
-            .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
-            .pBufferMemoryBarriers = bufferBarriers.data()};
-
-          cmd_buf.pipelineBarrier2(dependencyInfo);
-        }
-
-        etna::set_state(
-          cmd_buf,
-          renderTarget.get(),
-          vk::PipelineStageFlagBits2::eComputeShader,
-          vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite,
-          vk::ImageLayout::eGeneral,
-          vk::ImageAspectFlagBits::eColor);
-
-        etna::flush_barriers(cmd_buf);
-
-        tonemappingShaderStart(
-          cmd_buf,
-          postprocessComputePipeline,
-          "postprocess_compute",
-          {etna::Binding{0, renderTarget.genBinding({}, vk::ImageLayout::eGeneral)},
-           etna::Binding{1, currentDistributionBuffer.genBinding()},
-           etna::Binding{2, currentHistogramInfo.genBinding()}},
-          binsAmount,
-          {(resolution.x + 31) / 32, (resolution.y + 31) / 32});
-      }
-    }
-
     etna::set_state(
       cmd_buf,
       renderTarget.get(),
@@ -1073,42 +773,6 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
   }
 }
 
-void WorldRenderer::parseInstanceInfo(etna::Buffer& buffer)
-{
-  ZoneScoped;
-
-  auto instanceMeshes = sceneMgr->getInstanceMeshes();
-  auto instanceMatrices = sceneMgr->getInstanceMatrices();
-  auto meshes = sceneMgr->getMeshes();
-  auto bounds = sceneMgr->getRenderElementsBounds();
-
-  buffer.map();
-
-  glm::mat4x4* instanceData = std::bit_cast<glm::mat4x4*>(buffer.data());
-
-  std::size_t index = 0;
-  for (std::size_t i = 0; i < instanceMatrices.size(); i++)
-  {
-    const auto meshIdx = instanceMeshes[i];
-    const auto& currentMatrix = instanceMatrices[i];
-
-    for (std::size_t j = 0; j < meshes[meshIdx].relemCount; j++)
-    {
-      const auto relemIdx = meshes[meshIdx].firstRelem + j;
-      if (!isVisible(bounds[relemIdx], params.projView, currentMatrix))
-      {
-        continue;
-      }
-      instancesAmount[relemIdx]++;
-
-      instanceData[index] = currentMatrix;
-      index++;
-    }
-  }
-
-  buffer.unmap();
-}
-
 void WorldRenderer::updateConstants(etna::Buffer& constants)
 {
   ZoneScoped;
@@ -1118,73 +782,4 @@ void WorldRenderer::updateConstants(etna::Buffer& constants)
   std::memcpy(constants.data(), &params, sizeof(UniformParams));
 
   constants.unmap();
-}
-
-
-void WorldRenderer::tonemappingShaderStart(
-  vk::CommandBuffer cmd_buf,
-  const etna::ComputePipeline& current_pipeline,
-  std::string shader_program,
-  std::vector<etna::Binding> bindings,
-  std::optional<uint32_t> push_constant,
-  glm::uvec2 group_count)
-{
-  ZoneScoped;
-  auto vkPipelineLayout = current_pipeline.getVkPipelineLayout();
-  cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, current_pipeline.getVkPipeline());
-
-  auto shaderProgramInfo = etna::get_shader_program(shader_program.c_str());
-
-  auto set =
-    etna::create_descriptor_set(shaderProgramInfo.getDescriptorLayoutId(0), cmd_buf, bindings);
-
-  auto vkSet = set.getVkSet();
-
-  cmd_buf.bindDescriptorSets(
-    vk::PipelineBindPoint::eCompute, vkPipelineLayout, 0, 1, &vkSet, 0, nullptr);
-
-  if (push_constant.has_value())
-  {
-    auto pushConst = push_constant.value();
-    cmd_buf.pushConstants(
-      vkPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(pushConst), &pushConst);
-  }
-
-  etna::flush_barriers(cmd_buf);
-
-  cmd_buf.dispatch(group_count.x, group_count.y, 1);
-}
-
-bool WorldRenderer::isVisible(
-  const Bounds& bounds, const glm::mat4& proj_view, const glm::mat4& transform)
-{
-  std::array corners = {
-    glm::vec3{1, 1, 1},
-    glm::vec3{1, 1, -1},
-    glm::vec3{1, -1, 1},
-    glm::vec3{-1, 1, 1},
-    glm::vec3{1, -1, -1},
-    glm::vec3{-1, 1, -1},
-    glm::vec3{-1, -1, 1},
-    glm::vec3{-1, -1, -1},
-  };
-
-  glm::vec3 min = {2, 2, 2};    // > 1
-  glm::vec3 max = {-2, -2, -2}; // < -1
-
-  auto matrix = proj_view * transform;
-
-  for (const auto& corner : corners)
-  {
-    glm::vec4 projection = matrix * glm::vec4(bounds.origin + (corner * bounds.extents), 1.0f);
-
-    glm::vec3 current = {projection.x, projection.y, projection.z};
-    current /= projection.w;
-
-    min = glm::min(current, min);
-    max = glm::max(current, max);
-  }
-
-  return min.z <= 1.0f && max.z >= -1.0f && min.x <= 1.0f && max.x >= -1.0f && min.y <= 1.0f &&
-    max.y >= -1.0f;
 }

@@ -72,9 +72,9 @@ void Renderer::initFrameDelivery(vk::UniqueSurfaceKHR a_surface, ResolutionProvi
   worldRenderer->generateTerrain();
 }
 
-void Renderer::loadScene(std::filesystem::path path)
+void Renderer::loadScene()
 {
-  worldRenderer->loadScene(path);
+  worldRenderer->loadScene();
 }
 
 void Renderer::debugInput(const Keyboard& kb)

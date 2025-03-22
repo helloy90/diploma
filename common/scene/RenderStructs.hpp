@@ -2,12 +2,14 @@
 
 #include <glm/glm.hpp>
 
+#include "resource/Material.hpp"
 
 // Bounds for each render element
 struct Bounds
 {
-  glm::vec3 origin;
-  glm::vec3 extents;
+  // w coordinate is padding
+  glm::vec4 minPos; 
+  glm::vec4 maxPos;
 };
 
 // A single render element (relem) corresponds to a single draw call
@@ -18,10 +20,9 @@ struct RenderElement
   std::uint32_t indexOffset;
   std::uint32_t indexCount;
 
+  Material::Id material = Material::Id::Invalid;
 
   auto operator<=>(const RenderElement& other) const = default;
-  // Not implemented!
-  // Material* material;
 };
 
 struct HashRenderElement
@@ -42,3 +43,24 @@ struct Mesh
   std::uint32_t firstRelem;
   std::uint32_t relemCount;
 };
+
+struct RenderElementGLSLCompat {
+  std::uint32_t vertexOffset;
+  std::uint32_t indexOffset;
+  std::uint32_t indexCount;
+  std::uint32_t material;
+};
+static_assert(sizeof(RenderElementGLSLCompat) % (sizeof(float) * 4) == 0);
+
+struct MaterialGLSLCompat { 
+  glm::vec4 baseColorFactor;
+  float roughnessFactor;
+  float metallicFactor;
+  std::uint32_t baseColorTexture;
+  std::uint32_t metallicRoughnessTexture;
+  std::uint32_t normalTexture;
+  std::uint32_t _padding0 = 0;
+  std::uint32_t _padding1 = 0;
+  std::uint32_t _padding2 = 0;
+};
+static_assert(sizeof(MaterialGLSLCompat) % (sizeof(float) * 4) == 0);
