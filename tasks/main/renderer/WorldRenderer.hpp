@@ -31,15 +31,16 @@ public:
   void rebuildRenderPipelines();
   void setupTerrainGeneration(vk::Format texture_format, vk::Extent3D extent);
   void generateTerrain();
-  void loadLights(); 
+  void loadLights();
 
   void debugInput(const Keyboard& kb);
   void update(const FramePacket& packet);
   void drawGui();
-  void renderWorld(
-    vk::CommandBuffer cmd_buf, vk::Image target_image);
+  void renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_image);
 
 private:
+  void cullTerrain(
+    vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
 
   void renderTerrain(
     vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
@@ -76,11 +77,7 @@ private:
   etna::GraphicsPipeline terrainRenderPipeline;
   etna::GraphicsPipeline deferredShadingPipeline;
 
-  std::optional<etna::GpuSharedResource<etna::Buffer>> histogramBuffer;
-  std::optional<etna::GpuSharedResource<etna::Buffer>> histogramInfoBuffer;
-  std::optional<etna::GpuSharedResource<etna::Buffer>> distributionBuffer;
-
-  std::uint32_t binsAmount;
+  etna::ComputePipeline cullingPipeline;
 
   etna::ComputePipeline terrainNormalPipeline;
   etna::ComputePipeline lightDisplacementPipeline;

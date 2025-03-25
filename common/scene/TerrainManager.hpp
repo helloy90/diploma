@@ -5,6 +5,7 @@
 #include <etna/Buffer.hpp>
 #include <etna/BlockingTransferHelper.hpp>
 #include <etna/VertexInput.hpp>
+#include <etna/GpuSharedResource.hpp>
 
 #include "RenderStructs.hpp"
 
@@ -16,7 +17,7 @@ public:
 
   void loadTerrain();
 
-  void moveClipmap(vk::CommandBuffer cmd_buf, glm::vec3 camera_position);
+  void moveClipmap(glm::vec3 camera_position);
 
   // Every instance is a mesh drawn with a certain transform
   std::span<const glm::mat4x4> getInstanceMatrices() { return instanceMatrices; }
@@ -37,7 +38,7 @@ public:
   etna::Buffer& getBoundsBuffer() { return unifiedBoundsbuf; }
   etna::Buffer& getMeshesBuffer() { return unifiedMeshesbuf; }
   etna::Buffer& getInstanceMeshesBuffer() { return unifiedInstanceMeshesbuf; }
-  etna::Buffer& getInstanceMatricesBuffer() { return unifiedInstanceMatricesbuf; }
+  etna::Buffer& getInstanceMatricesBuffer() { return unifiedInstanceMatricesbuf->get(); }
   etna::Buffer& getRelemInstanceOffsetsBuffer() { return unifiedRelemInstanceOffsetsbuf; }
   etna::Buffer& getDrawInstanceIndicesBuffer() { return unifiedDrawInstanceIndicesbuf; }
   etna::Buffer& getDrawCommandsBuffer() { return unifiedDrawCommandsbuf; }
@@ -49,10 +50,11 @@ private:
   {
     // First 2 floats are position, last 2 float are texcoords
     // normals computed in shader
-    glm::vec4 positionAndTexcoord;
+    glm::vec2 position;
+    // glm::vec2 texCoord;
   };
 
-  static_assert(sizeof(Vertex) == sizeof(float) * 4);
+  // static_assert(sizeof(Vertex) == sizeof(float) * 4);
 
   struct ProcessedInstances
   {
@@ -95,7 +97,9 @@ private:
   etna::Buffer unifiedRelemsbuf;
   etna::Buffer unifiedBoundsbuf;
   etna::Buffer unifiedMeshesbuf;
-  etna::Buffer unifiedInstanceMatricesbuf;
+
+  std::optional<etna::GpuSharedResource<etna::Buffer>> unifiedInstanceMatricesbuf;
+
   etna::Buffer unifiedInstanceMeshesbuf;
   etna::Buffer unifiedRelemInstanceOffsetsbuf;
 

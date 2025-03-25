@@ -7,6 +7,7 @@
 #include <etna/Profiling.hpp>
 
 #include <imgui.h>
+#include <vulkan/vulkan.hpp>
 
 
 Renderer::Renderer(glm::uvec2 res)
@@ -34,6 +35,7 @@ void Renderer::initVulkan(std::span<const char*> instance_extensions)
       vk::PhysicalDeviceFeatures2{
         .features =
           {.tessellationShader = vk::True,
+           .multiDrawIndirect = vk::True,
            .fillModeNonSolid = vk::True /*debug*/,
            .fragmentStoresAndAtomics = vk::True}},
     .physicalDeviceIndexOverride = {},
