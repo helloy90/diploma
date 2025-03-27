@@ -71,7 +71,7 @@ private:
     std::vector<Bounds> bounds;
   };
 
-  uint32_t positionToIndexInTile(uint32_t x, uint32_t y) const { return y * vertexTileSize + x; };
+  uint32_t positionToIndex(uint32_t x, uint32_t y, uint32_t size) const { return y * size + x; };
 
   ProcessedInstances processInstances() const;
   ProcessedMeshes initializeMeshes() const;

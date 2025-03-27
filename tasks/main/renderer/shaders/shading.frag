@@ -48,16 +48,16 @@ void main() {
     vec3 ambient = vec3(0);
     vec3 color = albedo;
 
-    // for (uint i = 0; i < uniformParams.directionalLightsAmount; i++) {
-    //     DirectionalLight currentLight = directionalLightsBuffer[i];
+    for (uint i = 0; i < uniformParams.directionalLightsAmount; i++) {
+        DirectionalLight currentLight = directionalLightsBuffer[i];
 
-    //     vec3 viewSpaceLightDirection = normalize(uniformParams.view * vec4(currentLight.direction, 0)).xyz;
+        vec3 viewSpaceLightDirection = normalize(uniformParams.view * vec4(currentLight.direction, 0)).xyz;
 
-    //     float normalLighting = clamp(dot(viewSpaceNormal, viewSpaceLightDirection), 0.0, 1.0);
-    //     vec3 diffuse = albedo * normalLighting * currentLight.color * currentLight.intensity;
+        float normalLighting = clamp(dot(viewSpaceNormal, viewSpaceLightDirection), 0.0, 1.0);
+        vec3 diffuse = albedo * normalLighting * currentLight.color * currentLight.intensity;
 
-    //     color += diffuse;
-    // }
+        color += diffuse;
+    }
 
     for (uint i = 0; i < uniformParams.lightsAmount; i++) {
         Light currentLight = lightsBuffer[i];

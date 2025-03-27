@@ -32,11 +32,14 @@ out gl_PerVertex { vec4 gl_Position; };
 void main(void) {
   mat4 currentModelMatrix = instanceMatrices[drawRelemsInstanceIndices[gl_InstanceIndex]];
 
-  vOut.texCoord = 0.5 * (vPos.xy / params.extent) + 0.5;
+  vec3 pos = (currentModelMatrix * vec4(vPos.x, 0, vPos.y, 1.0)).xyz;
 
-  float height = texture(heightMap, vOut.texCoord).x;
+  vOut.texCoord = 0.5 * (pos.xz / params.extent) + 0.5;
+  float height = (texture(heightMap, vOut.texCoord).x - params.heightOffset) * params.heightAmplifier;
 
-  vOut.wPos = (currentModelMatrix * vec4(vPos.x, (height - params.heightOffset * 0.9) * params.heightAmplifier, vPos.y, 1.0)).xyz;
+  pos.y = height;
+
+  vOut.wPos = pos;
 
   gl_Position = params.projView * vec4(vOut.wPos, 1.0);
 }
