@@ -1,10 +1,8 @@
 #include "TerrainManager.hpp"
 #include "etna/Assert.hpp"
 
-#include <cstdint>
 #include <fmt/core.h>
 #include <glm/fwd.hpp>
-#include <iostream>
 #include <tracy/Tracy.hpp>
 #include <vector>
 
@@ -65,7 +63,6 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
     result.bounds.reserve(relemsAmount);
     result.meshes.reserve(1 + 1 + 1 + 1 + 1);
   }
-  std::uint32_t indexValueOffset = 0;
 
   // cross mesh
   {
@@ -113,7 +110,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         for (uint32_t j = 0; j < 6; j++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[j]));
-          result.indices.emplace_back(currentIndices[j] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[j]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -136,17 +133,12 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentOffsetAddition = tileSize * 2 * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from start - {}, maximum index for "
+        "Wrong index offset will be added! Maximum index for "
         "current mesh + 1- "
         "{}, supposed offset - {}",
-        indexValueOffset,
         currentMaxIndex + 1,
         currentOffsetAddition);
       currentMaxIndex = -1;
-
-      indexValueOffset += currentOffsetAddition;
-      logger->info("indexValueOffset now is {}", indexValueOffset);
-      indexValueOffset = 0;
     }
 
     // vertical
@@ -188,7 +180,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         for (uint32_t j = 0; j < 6; j++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[j]));
-          result.indices.emplace_back(currentIndices[j] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[j]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -211,18 +203,12 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentOffsetAddition = tileSize * 2 * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from horizontal element of cross mesh - "
-        "{}, maximum index for "
+        "Wrong index offset will be added! Maximum index for "
         "current mesh + 1- "
         "{}, supposed offset - {}",
-        indexValueOffset,
         currentMaxIndex + 1,
         currentOffsetAddition);
       currentMaxIndex = -1;
-
-      indexValueOffset += currentOffsetAddition;
-      logger->info("indexValueOffset now is {}", indexValueOffset);
-      indexValueOffset = 0;
     }
   }
 
@@ -266,11 +252,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           positionToIndexInTile(x + 1, y),
           positionToIndexInTile(x + 1, y + 1)};
 
-        // without c++23
         for (uint32_t i = 0; i < 6; i++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[i]));
-          result.indices.emplace_back(currentIndices[i] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[i]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -292,18 +277,13 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
     currentOffsetAddition = positionToIndexInTile(tileSize, tileSize) + 1;
     ETNA_VERIFYF(
       currentOffsetAddition == currentMaxIndex + 1,
-      "Wrong index offset will be added! Current offset from vertical arm of cross mesh - {}, "
-      "maximum index for current "
+      "Wrong index offset will be added! Maximum index for current "
       "mesh + 1 - "
       "{}, supposed offset - {}",
-      indexValueOffset,
       currentMaxIndex + 1,
       currentOffsetAddition);
 
     currentMaxIndex = -1;
-    indexValueOffset += currentOffsetAddition;
-    logger->info("indexValueOffset now is {}", indexValueOffset);
-    indexValueOffset = 0;
   }
 
   // filler meshes
@@ -352,7 +332,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         for (uint32_t j = 0; j < 6; j++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[j]));
-          result.indices.emplace_back(currentIndices[j] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[j]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -374,17 +354,12 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentOffsetAddition = (tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from square mesh - {}, maximum index for "
+        "Wrong index offset will be added! Maximum index for "
         "current mesh + 1 - "
         "{}, supposed offset - {}",
-        indexValueOffset,
         currentMaxIndex + 1,
         currentOffsetAddition);
       currentMaxIndex = -1;
-
-      indexValueOffset += currentOffsetAddition;
-      logger->info("indexValueOffset now is {}", indexValueOffset);
-      indexValueOffset = 0;
     }
 
     {
@@ -425,7 +400,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         for (uint32_t j = 0; j < 6; j++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[j]));
-          result.indices.emplace_back(currentIndices[j] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[j]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -447,19 +422,13 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentOffsetAddition = (1 + tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from right arm of filler mesh relem + 1  "
-        "- {}, maximum "
+        "Wrong index offset will be added! Maximum "
         "index for "
         "current mesh + 1 - "
         "{}, supposed offset - {}",
-        indexValueOffset,
         currentMaxIndex + 1,
         currentOffsetAddition);
       currentMaxIndex = -1;
-
-      indexValueOffset += currentOffsetAddition;
-      logger->info("indexValueOffset now is {}", indexValueOffset);
-      indexValueOffset = 0;
     }
 
     {
@@ -500,7 +469,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         for (uint32_t j = 0; j < 6; j++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[j]));
-          result.indices.emplace_back(currentIndices[j] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[j]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -522,20 +491,13 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentOffsetAddition = (2 + tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from tom arm relem of filler mesh + 1 "
-        "- "
-        "{}, maximum "
+        "Wrong index offset will be added! Maximum "
         "index for current "
         "mesh + 1 - "
         "{}, supposed offset - {}",
-        indexValueOffset,
         currentMaxIndex + 1,
         currentOffsetAddition);
       currentMaxIndex = -1;
-
-      indexValueOffset += currentOffsetAddition;
-      logger->info("indexValueOffset now is {}", indexValueOffset);
-      indexValueOffset = 0;
     }
 
     {
@@ -577,7 +539,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         for (uint32_t j = 0; j < 6; j++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[j]));
-          result.indices.emplace_back(currentIndices[j] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[j]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -600,20 +562,13 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentOffsetAddition = (3 + tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from left arm relem of filler mesh + 1 "
-        "- "
-        "{}, maximum "
+        "Wrong index offset will be added! Maximum "
         "index for current "
         "mesh + 1 - "
         "{}, supposed offset - {}",
-        indexValueOffset,
         currentMaxIndex + 1,
         currentOffsetAddition);
       currentMaxIndex = -1;
-
-      indexValueOffset += currentOffsetAddition;
-      logger->info("indexValueOffset now is {}", indexValueOffset);
-      indexValueOffset = 0;
     }
   }
 
@@ -658,7 +613,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         for (uint32_t j = 0; j < 6; j++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[j]));
-          result.indices.emplace_back(currentIndices[j] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[j]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -681,18 +636,12 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentOffsetAddition = vertexGridSize * 2 + 1; // because connected in the same mesh
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex,
-        "Wrong index offset will be added! Current offset from bottom arm relem of filler mesh "
-        "- {}, maximum index for current "
+        "Wrong index offset will be added! Maximum index for current "
         "mesh - "
         "{}, supposed offset - {}",
-        indexValueOffset,
         currentMaxIndex,
         currentOffsetAddition);
       currentMaxIndex = -1;
-
-      indexValueOffset += currentOffsetAddition;
-      logger->info("indexValueOffset now is {}", indexValueOffset);
-      indexValueOffset = 0;
     }
 
     // horizontal
@@ -729,7 +678,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         for (uint32_t j = 0; j < 6; j++)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(currentIndices[j]));
-          result.indices.emplace_back(currentIndices[j] + indexValueOffset);
+          result.indices.emplace_back(currentIndices[j]);
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
       }
@@ -752,25 +701,18 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       currentOffsetAddition = (vertexGridSize - 1) * 2 + 1 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
-        "Wrong index offset will be added! Current offset from vertical arm relem of trim mesh - "
-        "{}, maximum index for current "
+        "Wrong index offset will be added! Maximum index for current "
         "mesh + 1 - "
         "{}, supposed offset - {}",
-        indexValueOffset,
         currentMaxIndex + 1,
         currentOffsetAddition);
       currentMaxIndex = -1;
-
-      indexValueOffset += currentOffsetAddition;
-      logger->info("indexValueOffset now is {}", indexValueOffset);
-      indexValueOffset = 0;
     }
   }
 
   // seam
   {
   }
-
 
   for (uint32_t i = 0; i < result.meshes.size(); i++)
   {
