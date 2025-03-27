@@ -33,8 +33,8 @@ vec3 getPosition(uint vertex) {
     currentInstanceIndex / uniformParams.terrainInChunks.x
   );
   uvec2 coordsOfVertexInChunk = uvec2(vertex / 2, vertex % 2);
-  //start position is (0, 0, 0)
-  uvec2 worldCoords = (coordsOfChunkInGrid + coordsOfVertexInChunk) * uniformParams.chunk;
+  //start position is terrainOffset
+  vec2 worldCoords = uniformParams.terrainOffset + (coordsOfChunkInGrid + coordsOfVertexInChunk) * uniformParams.chunk;
   return toTerrainCoords(vec3(worldCoords, 0));
 }
 
@@ -51,7 +51,7 @@ float getNearestDistanceFromCamera(vec3 first, vec3 second) {
 }
 
 vec2 getPositionInHeightMap(vec3 position) {
-  return clamp(vec2(getHorizontalCoords(position)) / uniformParams.extent, 0.0, 1.0);
+  return 0.5 * vec2(getHorizontalCoords(position)) / uniformParams.extent + 0.5;
 }
 
 float getTesselationLevel(float dist) {

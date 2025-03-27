@@ -8,16 +8,17 @@ layout (location = 0) out vec4 gAlbedo;
 layout (location = 1) out vec3 gNormal;
 layout (location = 2) out vec4 gMaterial;
 
-layout(location = 0) in VS_OUT
+layout (location = 0) in VS_OUT
 {
   vec3 wPos;
-  vec3 wNorm;
   vec2 texCoord;
 } surf;
+
+layout (binding = 4) uniform sampler2D normalMap;
 
 void main()
 {
   gAlbedo = vec4(0.5, 0.5, 0.5, 1);
-  gNormal = surf.wNorm;
+  gNormal = texture(normalMap, surf.texCoord).rgb;
   gMaterial = vec4(0.0, 0.6, 0.05, 1.0);
 }

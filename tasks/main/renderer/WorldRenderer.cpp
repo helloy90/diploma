@@ -5,6 +5,7 @@
 #include <etna/PipelineManager.hpp>
 #include <etna/Profiling.hpp>
 #include <etna/RenderTargetStates.hpp>
+#include <vulkan/vulkan_enums.hpp>
 
 #include "etna/DescriptorSet.hpp"
 #include "etna/Etna.hpp"
@@ -57,6 +58,7 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 
   params.terrainInChunks = shader_uvec2(64, 64);
   params.chunk = shader_uvec2(16, 16);
+  params.terrainOffset = -static_cast<glm::vec2>(params.terrainInChunks * params.chunk) / glm::vec2(2);
 
   constantsBuffer.emplace(ctx.getMainWorkCount(), [&ctx](std::size_t i) {
     return ctx.createBuffer(etna::Buffer::CreateInfo{
@@ -99,12 +101,12 @@ void WorldRenderer::loadShaders()
   etna::create_program(
     "terrain_normal_map_calculation", {DEFERRED_RENDERER_SHADERS_ROOT "calculate_normal.comp.spv"});
 
-  // etna::create_program(
-  //   "terrain_render",
-  //   {DEFERRED_RENDERER_SHADERS_ROOT "chunk.vert.spv",
-  //    DEFERRED_RENDERER_SHADERS_ROOT "subdivide_chunk.tesc.spv",
-  //    DEFERRED_RENDERER_SHADERS_ROOT "process_chunk.tese.spv",
-  //    DEFERRED_RENDERER_SHADERS_ROOT "terrain.frag.spv"});
+  etna::create_program(
+    "terrain_tesselation_render",
+    {DEFERRED_RENDERER_SHADERS_ROOT "chunk.vert.spv",
+     DEFERRED_RENDERER_SHADERS_ROOT "subdivide_chunk.tesc.spv",
+     DEFERRED_RENDERER_SHADERS_ROOT "process_chunk.tese.spv",
+     DEFERRED_RENDERER_SHADERS_ROOT "terrain.frag.spv"});
 
   etna::create_program(
     "terrain_render",
@@ -134,7 +136,40 @@ void WorldRenderer::setupRenderPipelines()
     "terrain_render",
     etna::GraphicsPipeline::CreateInfo{
       .vertexShaderInput = sceneVertexInputDesc,
-      /*.inputAssemblyConfig = {.topology = vk::PrimitiveTopology::ePatchList},*/
+      .rasterizationConfig =
+        vk::PipelineRasterizationStateCreateInfo{
+          .polygonMode = (wireframeEnabled ? vk::PolygonMode::eLine : vk::PolygonMode::eFill),
+          .cullMode = vk::CullModeFlagBits::eBack,
+          .frontFace = vk::FrontFace::eClockwise,
+          .lineWidth = 1.f,
+        },
+      .blendingConfig =
+        {
+          .attachments =
+            {{
+               .blendEnable = vk::False,
+               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+             },
+             {
+               .blendEnable = vk::False,
+               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+             }},
+          .logicOpEnable = false,
+          .logicOp = {},
+        },
+      .fragmentShaderOutput =
+        {
+          .colorAttachmentFormats = {renderTargetFormat, vk::Format::eR8G8B8A8Snorm},
+          .depthAttachmentFormat = vk::Format::eD32Sfloat,
+        },
+    });
+
+  terrainTesselationRenderPipeline = pipelineManager.createGraphicsPipeline(
+    "terrain_tesselation_render",
+    etna::GraphicsPipeline::CreateInfo{
+      .inputAssemblyConfig = {.topology = vk::PrimitiveTopology::ePatchList},
       .rasterizationConfig =
         vk::PipelineRasterizationStateCreateInfo{
           .polygonMode = (wireframeEnabled ? vk::PolygonMode::eLine : vk::PolygonMode::eFill),
@@ -622,30 +657,30 @@ void WorldRenderer::cullTerrain(
   }
 }
 
-// void WorldRenderer::renderTerrain(
-//   vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout)
-// {
-//   ZoneScoped;
+void WorldRenderer::renderTesselationTerrain(
+  vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout)
+{
+  ZoneScoped;
 
-//   auto shaderInfo = etna::get_shader_program("terrain_render");
-//   auto set = etna::create_descriptor_set(
-//     shaderInfo.getDescriptorLayoutId(0),
-//     cmd_buf,
-//     {etna::Binding{0, constants.genBinding()},
-//      etna::Binding{
-//        1, terrainMap.genBinding(terrainSampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
-//      etna::Binding{
-//        2,
-//        terrainNormalMap.genBinding(
-//          terrainSampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)}});
+  auto shaderInfo = etna::get_shader_program("terrain_tesselation_render");
+  auto set = etna::create_descriptor_set(
+    shaderInfo.getDescriptorLayoutId(0),
+    cmd_buf,
+    {etna::Binding{0, constants.genBinding()},
+     etna::Binding{
+       1, terrainMap.genBinding(terrainSampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
+     etna::Binding{
+       2,
+       terrainNormalMap.genBinding(
+         terrainSampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)}});
 
-//   auto vkSet = set.getVkSet();
+  auto vkSet = set.getVkSet();
 
-//   cmd_buf.bindDescriptorSets(
-//     vk::PipelineBindPoint::eGraphics, pipeline_layout, 0, 1, &vkSet, 0, nullptr);
+  cmd_buf.bindDescriptorSets(
+    vk::PipelineBindPoint::eGraphics, pipeline_layout, 0, 1, &vkSet, 0, nullptr);
 
-//   cmd_buf.draw(4, params.terrainInChunks.x * params.terrainInChunks.y, 0, 0);
-// }
+  cmd_buf.draw(4, params.terrainInChunks.x * params.terrainInChunks.y, 0, 0);
+}
 
 void WorldRenderer::renderTerrain(
   vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout)
@@ -726,8 +761,8 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
     auto& currentConstants = constantsBuffer->get();
     updateConstants(currentConstants);
 
-    // cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
-    // cullTerrain(cmd_buf, currentConstants, cullingPipeline.getVkPipelineLayout());
+    cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
+    cullTerrain(cmd_buf, currentConstants, cullingPipeline.getVkPipelineLayout());
 
     // etna::set_state(
     //   cmd_buf,
@@ -752,6 +787,18 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
       cmd_buf.bindPipeline(vk::PipelineBindPoint::eGraphics, terrainRenderPipeline.getVkPipeline());
       renderTerrain(cmd_buf, currentConstants, terrainRenderPipeline.getVkPipelineLayout());
     }
+
+    // {
+    //   ETNA_PROFILE_GPU(cmd_buf, renderTerrain);
+    //   etna::RenderTargetState renderTargets(
+    //     cmd_buf,
+    //     {{0, 0}, {resolution.x, resolution.y}},
+    //     gBuffer->genColorAttachmentParams(vk::AttachmentLoadOp::eLoad),
+    //     gBuffer->genDepthAttachmentParams(vk::AttachmentLoadOp::eLoad));
+
+    //   cmd_buf.bindPipeline(vk::PipelineBindPoint::eGraphics, terrainTesselationRenderPipeline.getVkPipeline());
+    //   renderTesselationTerrain(cmd_buf, currentConstants, terrainTesselationRenderPipeline.getVkPipelineLayout());
+    // }
 
     gBuffer->prepareForRead(cmd_buf);
 

@@ -387,7 +387,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       logger->info("Indices:");
       for (uint32_t i = 0; i < tileSize; i++)
       {
-        uint32_t arm = 1;
+        uint32_t arm = 0;
 
         uint32_t bottomLeft = (arm + i) * 2 + 0;
         uint32_t bottomRight = (arm + i) * 2 + 1;
@@ -419,7 +419,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         glm::to_string(result.bounds.back().minPos),
         glm::to_string(result.bounds.back().maxPos));
 
-      currentOffsetAddition = (1 + tileSize - 1) * 2 + 3 + 1;
+      currentOffsetAddition = (tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
         "Wrong index offset will be added! Maximum "
@@ -457,7 +457,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       logger->info("Indices:");
       for (uint32_t i = 0; i < tileSize; i++)
       {
-        uint32_t arm = 2;
+        uint32_t arm = 0;
 
         uint32_t bottomLeft = (arm + i) * 2 + 0;
         uint32_t bottomRight = (arm + i) * 2 + 1;
@@ -488,7 +488,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         glm::to_string(result.bounds.back().minPos),
         glm::to_string(result.bounds.back().maxPos));
 
-      currentOffsetAddition = (2 + tileSize - 1) * 2 + 3 + 1;
+      currentOffsetAddition = (tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
         "Wrong index offset will be added! Maximum "
@@ -526,7 +526,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       logger->info("Indices:");
       for (uint32_t i = 0; i < tileSize; i++)
       {
-        uint32_t arm = 3;
+        uint32_t arm = 0;
 
         uint32_t bottomLeft = (arm + i) * 2 + 0;
         uint32_t bottomRight = (arm + i) * 2 + 1;
@@ -559,7 +559,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         glm::to_string(result.bounds.back().minPos),
         glm::to_string(result.bounds.back().maxPos));
 
-      currentOffsetAddition = (3 + tileSize - 1) * 2 + 3 + 1;
+      currentOffsetAddition = (tileSize - 1) * 2 + 3 + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
         "Wrong index offset will be added! Maximum "
@@ -874,12 +874,18 @@ void TerrainManager::uploadData(
   transferHelper->uploadBuffer<std::uint32_t>(
     *oneShotCommands, unifiedInstanceMeshesbuf, 0, std::span(instanceMeshes));
 
+  std::size_t drawRelemsInstancesIndicesSize = 0;
+  for (auto meshIndex : instanceMeshes)
+  {
+    drawRelemsInstancesIndicesSize += meshes[meshIndex].relemCount;
+  }
+
   // filled on GPU when culling
-  unifiedDrawInstanceIndicesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = instanceMeshes.size() * sizeof(std::uint32_t),
+  unifiedDrawRelemsInstanceIndicesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
+    .size = drawRelemsInstancesIndicesSize * sizeof(std::uint32_t),
     .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
     .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedDrawInstanceIndicesbuf"});
+    .name = "unifiedDrawRelemsInstanceIndicesbuf"});
 
   unifiedRelemInstanceOffsetsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
     .size = renderElements.size() * sizeof(std::uint32_t),

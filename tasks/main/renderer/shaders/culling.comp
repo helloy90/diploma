@@ -50,8 +50,8 @@ layout(binding = 4) buffer instance_matrices_t {
 layout(binding = 5) buffer relem_instance_offsets_t {
     uint relemInstanceOffsets[];
 };
-layout(binding = 6) buffer draw_instance_indices_t {
-    uint drawInstanceIndices[];
+layout(binding = 6) buffer draw_relems_instance_indices_t {
+    uint drawRelemsInstanceIndices[];
 };
 layout(binding = 7) buffer draw_commands_t {
     vkDrawIndexedIndirectCommand drawCommands[];
@@ -67,19 +67,20 @@ bool within(float left, float value, float right) {
 }
 
 void main() {
-    uint instanceIdx = gl_GlobalInvocationID.x;
+    uint meshInstanceIdx = gl_GlobalInvocationID.x;
 
-    if (instanceIdx >= params.instancesCount) {
+    if (meshInstanceIdx >= params.instancesCount) {
         return;
     }
 
     // maybe its better to use for loop here for instance index 0
-    if (instanceIdx < params.relemsCount) {
-        drawCommands[instanceIdx].instanceCount = 0;
+    // no relation to meshes or relems, just parallelizing setting instanceCount to 0 
+    if (meshInstanceIdx < params.relemsCount) {
+        drawCommands[meshInstanceIdx].instanceCount = 0;
     }
     memoryBarrierBuffer();
 
-    uint currentMeshInstance = instanceMeshes[instanceIdx];
+    uint currentMeshInstance = instanceMeshes[meshInstanceIdx];
     Mesh currentMesh = meshes[currentMeshInstance];
 
     for (uint relemIdx = currentMesh.firstRelem;
@@ -102,7 +103,7 @@ void main() {
         // };
 
         // for (uint i = 0; i < 8; i++) {
-        //     vec4 corner = params.projView * (instanceMatrices[instanceIdx] * corners[i]);
+        //     vec4 corner = params.projView * (instanceMatrices[meshInstanceIdx] * corners[i]);
 
         //     visible = visible 
         //         || within(-corner.w, corner.x, corner.w) 
@@ -111,9 +112,9 @@ void main() {
         // }
 
         if (visible) {
-            uint drawInstance = atomicAdd(drawCommands[relemIdx].instanceCount, 1);
-            uint index = relemInstanceOffsets[relemIdx] + drawInstance;
-            drawInstanceIndices[index] = instanceIdx;
+            uint drawRelemInstance = atomicAdd(drawCommands[relemIdx].instanceCount, 1);
+            uint index = relemInstanceOffsets[relemIdx] + drawRelemInstance;
+            drawRelemsInstanceIndices[index] = meshInstanceIdx;
         }
     }
 }

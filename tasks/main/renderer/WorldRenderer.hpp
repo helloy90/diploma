@@ -44,6 +44,8 @@ private:
 
   void renderTerrain(
     vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
+  void renderTesselationTerrain(
+    vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
 
   void deferredShading(
     vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
@@ -75,6 +77,7 @@ private:
 
   etna::GraphicsPipeline terrainGenerationPipeline;
   etna::GraphicsPipeline terrainRenderPipeline;
+  etna::GraphicsPipeline terrainTesselationRenderPipeline;
   etna::GraphicsPipeline deferredShadingPipeline;
 
   etna::ComputePipeline cullingPipeline;

@@ -40,7 +40,7 @@ public:
   etna::Buffer& getInstanceMeshesBuffer() { return unifiedInstanceMeshesbuf; }
   etna::Buffer& getInstanceMatricesBuffer() { return unifiedInstanceMatricesbuf->get(); }
   etna::Buffer& getRelemInstanceOffsetsBuffer() { return unifiedRelemInstanceOffsetsbuf; }
-  etna::Buffer& getDrawInstanceIndicesBuffer() { return unifiedDrawInstanceIndicesbuf; }
+  etna::Buffer& getDrawInstanceIndicesBuffer() { return unifiedDrawRelemsInstanceIndicesbuf; }
   etna::Buffer& getDrawCommandsBuffer() { return unifiedDrawCommandsbuf; }
 
   etna::VertexByteStreamFormatDescription getVertexFormatDescription();
@@ -103,7 +103,7 @@ private:
   etna::Buffer unifiedInstanceMeshesbuf;
   etna::Buffer unifiedRelemInstanceOffsetsbuf;
 
-  etna::Buffer unifiedDrawInstanceIndicesbuf;
+  etna::Buffer unifiedDrawRelemsInstanceIndicesbuf;
 
   etna::Buffer unifiedDrawCommandsbuf;
 };

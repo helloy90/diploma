@@ -22,6 +22,7 @@ struct UniformParams
   shader_uvec2 extent;
   shader_uvec2 chunk;
   shader_uvec2 terrainInChunks;
+  shader_vec2 terrainOffset;
 
   shader_uint lightsAmount;
   shader_uint directionalLightsAmount;
