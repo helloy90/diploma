@@ -5,7 +5,6 @@
 #include <etna/PipelineManager.hpp>
 #include <etna/Profiling.hpp>
 #include <etna/RenderTargetStates.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 #include "etna/DescriptorSet.hpp"
 #include "etna/Etna.hpp"
@@ -16,7 +15,7 @@
 
 
 WorldRenderer::WorldRenderer()
-  : terrainMgr{std::make_unique<TerrainManager>(5, 63)}
+  : terrainMgr{std::make_unique<TerrainManager>(2, 15)}
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , maxNumberOfSamples(16)
   , wireframeEnabled(false)
