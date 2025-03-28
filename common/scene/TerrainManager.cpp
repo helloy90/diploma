@@ -576,8 +576,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
       .relemCount = static_cast<std::uint32_t>(2)});
 
-    glm::vec2 vertexOffset = {
-      -static_cast<int32_t>(2 * vertexTileSize + 1), -static_cast<int32_t>(2 * vertexTileSize + 1)};
+    glm::vec2 vertexOffset = glm::vec2(-static_cast<glm::float32>(vertexGridSize) * 0.5);
     // vertical
     {
       auto relem = (RenderElement{
@@ -1195,47 +1194,50 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
   // trim meshes
   {
-    glm::vec2 previousScale = {};
-    glm::vec2 previousSnappedPosition = {};
+    glm::vec2 nextScale = {};
+    glm::vec2 nextSnappedPosition = {};
 
     glm::vec2 tileCenter = {};
     glm::vec2 diff = {};
 
-    // 00 - 0 degrees, 10 - 90 degrees, 01 - 270 degrees, 11 - 180 degrees
-    float rotationAngles[] = {0, 270.0f, 90.0f, 180.0f};
+    // 00 - 0 degrees (0), 01 - 270 degrees(1), 10 - 90 degrees (2), 11 - 180 degrees(3)
+    glm::mat4x4 rotationMatrices[] = {
+      glm::identity<glm::mat4x4>(),
+      glm::mat4x4(0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1),
+      glm::mat4x4(0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
+      glm::mat4x4(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)};
 
-    for (uint32_t level = 1; level < clipmapLevels; level++)
+    for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      previousScale = glm::vec2(1 << (level - 1));
-      previousSnappedPosition =
-        glm::floor(cameraHorizontalPosition / previousScale) * previousScale;
-
       scale = glm::vec2(1 << level);
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
-      tileCenter = previousSnappedPosition + scale * glm::vec2(0.5);
+      nextScale = glm::vec2(1 << (level + 1));
+      nextSnappedPosition = glm::floor(cameraHorizontalPosition / nextScale) * nextScale;
 
-      diff = cameraHorizontalPosition - snappedPosition;
+      tileCenter = snappedPosition + scale * glm::vec2(0.5);
 
-      uint32_t rotation = 0;
+      diff = cameraHorizontalPosition - nextSnappedPosition;
+
+      uint32_t index = 0;
       // scale.x == scale.y
-      rotation |= (diff.x < scale.x ? 2 : 0);
-      rotation |= (diff.y < scale.y ? 1 : 0);
+      index |= (diff.x < scale.x ? 2 : 0);
+      index |= (diff.y < scale.y ? 1 : 0);
 
       newPosition = tileCenter;
 
-      instanceMatrices[meshOffset] = glm::translate(
-        glm::rotate(
-          glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x, scale.x, scale.x)),
-          rotationAngles[rotation],
-          glm::vec3(0, 1, 0)),
-        glm::vec3(newPosition.x, 0, newPosition.y));
+      instanceMatrices[meshOffset] = rotationMatrices[index] * glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x));
+      instanceMatrices[meshOffset][3].x = newPosition.x;
+      instanceMatrices[meshOffset][3].y = 0;
+      instanceMatrices[meshOffset][3].z = newPosition.y;
 
       ETNA_VERIFYF(
         instanceMeshes[meshOffset] == trimMesh,
         "Displacing wrong model, current - {}, needed - {}",
         instanceMeshes[meshOffset],
         trimMesh);
+
+      // spdlog::info("trim {}, matrix - {}", level, glm::to_string(instanceMatrices[meshOffset]));
 
       meshOffset++;
     }
