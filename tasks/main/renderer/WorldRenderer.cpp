@@ -15,7 +15,7 @@
 
 
 WorldRenderer::WorldRenderer()
-  : terrainMgr{std::make_unique<TerrainManager>(5, 15)}
+  : terrainMgr{std::make_unique<TerrainManager>(7, 255)}
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , maxNumberOfSamples(16)
   , wireframeEnabled(false)

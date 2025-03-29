@@ -719,10 +719,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
     auto relem = (RenderElement{
       .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
       .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-      .indexCount = (vertexGridSize * 4) * 3 / 2});
+      .indexCount = (vertexGridSize * 4 - 4) * 3 / 2});
 
     logger->info("Vertices:");
-    for (uint32_t i = 0; i < vertexGridSize; i++)
+    for (uint32_t i = 0; i < vertexGridSize - 1; i++)
     {
       auto& vertex = result.vertices.emplace_back();
       vertex.position = glm::vec2(i, 0);
@@ -730,36 +730,36 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         "\tvertex {}, position - {}", result.vertices.size() - 1,
         glm::to_string(vertex.position));
     }
-    for (uint32_t i = 0; i < vertexGridSize; i++)
+    for (uint32_t i = 0; i < vertexGridSize - 1; i++)
     {
       auto& vertex = result.vertices.emplace_back();
-      vertex.position = glm::vec2(vertexGridSize, i);
+      vertex.position = glm::vec2(vertexGridSize - 1, i);
       logger->info(
         "\tvertex {}, position - {}", result.vertices.size() - 1,
         glm::to_string(vertex.position));
     }
-    for (uint32_t i = 0; i < vertexGridSize; i++)
+    for (uint32_t i = 0; i < vertexGridSize - 1; i++)
     {
       auto& vertex = result.vertices.emplace_back();
-      vertex.position = glm::vec2(vertexGridSize - i, vertexGridSize);
+      vertex.position = glm::vec2(vertexGridSize - 1 - i, vertexGridSize - 1);
       logger->info(
         "\tvertex {}, position - {}", result.vertices.size() - 1,
         glm::to_string(vertex.position));
     }
-    for (uint32_t i = 0; i < vertexGridSize; i++)
+    for (uint32_t i = 0; i < vertexGridSize - 1; i++)
     {
       auto& vertex = result.vertices.emplace_back();
-      vertex.position = glm::vec2(0, vertexGridSize - i);
+      vertex.position = glm::vec2(0, vertexGridSize - 1 - i);
       logger->info(
         "\tvertex {}, position - {}", result.vertices.size() - 1,
         glm::to_string(vertex.position));
     }
 
     result.bounds.emplace_back(
-      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexGridSize, vertexGridSize, 0, 0}});
+      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexGridSize - 1, vertexGridSize - 1, 0, 0}});
     logger->info("Indices:");
 
-    for (uint32_t i = 0; i < vertexGridSize * 4; i += 2)
+    for (uint32_t i = 0; i < vertexGridSize * 4 - 4; i += 2)
     {
       uint32_t currentIndices[] = {i + 1, i, i + 2};
       for (auto index : currentIndices)
@@ -785,7 +785,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       glm::to_string(result.bounds.back().minPos),
       glm::to_string(result.bounds.back().maxPos));
 
-    currentOffsetAddition = vertexGridSize * 4 + 1;
+    currentOffsetAddition = vertexGridSize * 4 - 4 + 1;
     ETNA_VERIFYF(
       currentOffsetAddition == currentMaxIndex + 1,
       "Wrong index offset will be added! Maximum index for current "
