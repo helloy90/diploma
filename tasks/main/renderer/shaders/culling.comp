@@ -61,7 +61,6 @@ layout(binding = 8) uniform params_t {
     UniformParams params;
 };
 
-
 bool within(float left, float value, float right) {
     return (left <= value) && (value <= right);
 }
@@ -86,35 +85,9 @@ void main() {
     for (uint relemIdx = currentMesh.firstRelem;
          relemIdx < currentMesh.firstRelem + currentMesh.relemCount;
          relemIdx++) {
-        bool visible = true; //false
 
-        // vec3 currentMinPos = bounds[relemIdx].minPos;
-        // vec3 currentMaxPos = bounds[relemIdx].maxPos;
-
-        // vec4 corners[8] = {
-        //     {currentMaxPos.x, currentMaxPos.y, currentMaxPos.z, 1.0},
-        //     {currentMinPos.x, currentMaxPos.y, currentMaxPos.z, 1.0},
-        //     {currentMaxPos.x, currentMinPos.y, currentMaxPos.z, 1.0},
-        //     {currentMaxPos.x, currentMaxPos.y, currentMinPos.z, 1.0},
-        //     {currentMinPos.x, currentMinPos.y, currentMaxPos.z, 1.0},
-        //     {currentMinPos.x, currentMaxPos.y, currentMinPos.z, 1.0},
-        //     {currentMaxPos.x, currentMinPos.y, currentMinPos.z, 1.0},
-        //     {currentMinPos.x, currentMinPos.y, currentMinPos.z, 1.0}
-        // };
-
-        // for (uint i = 0; i < 8; i++) {
-        //     vec4 corner = params.projView * (instanceMatrices[meshInstanceIdx] * corners[i]);
-
-        //     visible = visible 
-        //         || within(-corner.w, corner.x, corner.w) 
-        //         || within(-corner.w, corner.y, corner.w) 
-        //         || within(0.0, corner.z, corner.w);
-        // }
-
-        if (visible) {
-            uint drawRelemInstance = atomicAdd(drawCommands[relemIdx].instanceCount, 1);
-            uint index = relemInstanceOffsets[relemIdx] + drawRelemInstance;
-            drawRelemsInstanceIndices[index] = meshInstanceIdx;
-        }
+        uint drawRelemInstance = atomicAdd(drawCommands[relemIdx].instanceCount, 1);
+        uint index = relemInstanceOffsets[relemIdx] + drawRelemInstance;
+        drawRelemsInstanceIndices[index] = meshInstanceIdx;
     }
 }

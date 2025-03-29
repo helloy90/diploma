@@ -80,7 +80,7 @@ private:
 private:
   uint32_t clipmapLevels;
   uint32_t vertexGridSize; // should be 2^k - 1
-  uint32_t vertexTileSize; // almost always (vertexGridSize + 1) / 4
+  uint32_t vertexTileSize; // always (vertexGridSize + 1) / 4
 
   std::unique_ptr<etna::OneShotCmdMgr> oneShotCommands;
   std::unique_ptr<etna::BlockingTransferHelper> transferHelper;

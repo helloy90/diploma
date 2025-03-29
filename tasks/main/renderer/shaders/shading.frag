@@ -36,8 +36,6 @@ void main() {
     vec3 normal = texture(gNormal, texCoord).xyz;
     float depth = texture(gDepth, texCoord).x;
 
-    // float height = (texture(terrainMap, texCoord).x - uniformParams.heightOffset) * uniformParams.heightAmplifier;
-
     vec4 screenSpacePosition = vec4(texCoord * 2.0 - 1.0, depth, 1.0);
 
     vec4 viewSpacePosition = inverse(uniformParams.proj) * screenSpacePosition;

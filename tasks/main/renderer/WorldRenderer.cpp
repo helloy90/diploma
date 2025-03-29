@@ -5,7 +5,6 @@
 #include <etna/PipelineManager.hpp>
 #include <etna/Profiling.hpp>
 #include <etna/RenderTargetStates.hpp>
-
 #include "etna/DescriptorSet.hpp"
 #include "etna/Etna.hpp"
 #include "imgui.h"
@@ -57,7 +56,8 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 
   params.terrainInChunks = shader_uvec2(64, 64);
   params.chunk = shader_uvec2(16, 16);
-  params.terrainOffset = -static_cast<glm::vec2>(params.terrainInChunks * params.chunk) / glm::vec2(2);
+  params.terrainOffset =
+    -static_cast<glm::vec2>(params.terrainInChunks * params.chunk) / glm::vec2(2);
 
   constantsBuffer.emplace(ctx.getMainWorkCount(), [&ctx](std::size_t i) {
     return ctx.createBuffer(etna::Buffer::CreateInfo{
@@ -85,11 +85,7 @@ void WorldRenderer::loadScene()
 
 void WorldRenderer::loadShaders()
 {
-  // etna::create_program(
-  //   "static_mesh_material",
-  //   {DEFERRED_RENDERER_SHADERS_ROOT "static_mesh.frag.spv",
-  //    DEFERRED_RENDERER_SHADERS_ROOT "static_mesh.vert.spv"});
-  // etna::create_program("static_mesh", {DEFERRED_RENDERER_SHADERS_ROOT "static_mesh.vert.spv"});
+
   etna::create_program(
     "terrain_generator",
     {DEFERRED_RENDERER_SHADERS_ROOT "decoy.vert.spv",
@@ -362,12 +358,16 @@ void WorldRenderer::update(const FramePacket& packet)
 
 void WorldRenderer::drawGui()
 {
-
   static ImU32 numberOfSamplesMin = 1;
-  static ImU32 numberOfSamplesMax = maxNumberOfSamples;
   static float persistenceMin = 0.0f;
   static float persistenceMax = 1.0f;
+
   ImGui::Begin("Render Settings");
+
+  ImGui::Text(
+    "Application average %.3f ms/frame (%.1f FPS)",
+    1000.0f / ImGui::GetIO().Framerate,
+    ImGui::GetIO().Framerate);
 
   if (ImGui::CollapsingHeader("Terrain Generation"))
   {
@@ -377,7 +377,7 @@ void WorldRenderer::drawGui()
       ImGuiDataType_U32,
       &generationParams.numberOfSamples,
       &numberOfSamplesMin,
-      &numberOfSamplesMax,
+      &maxNumberOfSamples,
       "%u");
     ImGui::SliderScalar(
       "Persistence",
@@ -760,16 +760,10 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
     auto& currentConstants = constantsBuffer->get();
     updateConstants(currentConstants);
 
-    cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
-    cullTerrain(cmd_buf, currentConstants, cullingPipeline.getVkPipelineLayout());
-
-    // etna::set_state(
-    //   cmd_buf,
-    //   terrainMap.get(),
-    //   vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
-    //   vk::AccessFlagBits2::eShaderSampledRead,
-    //   vk::ImageLayout::eShaderReadOnlyOptimal,
-    //   vk::ImageAspectFlagBits::eColor);
+    {
+      cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
+      cullTerrain(cmd_buf, currentConstants, cullingPipeline.getVkPipelineLayout());
+    }
 
     gBuffer->prepareForRender(cmd_buf);
 
@@ -795,8 +789,9 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
     //     gBuffer->genColorAttachmentParams(vk::AttachmentLoadOp::eLoad),
     //     gBuffer->genDepthAttachmentParams(vk::AttachmentLoadOp::eLoad));
 
-    //   cmd_buf.bindPipeline(vk::PipelineBindPoint::eGraphics, terrainTesselationRenderPipeline.getVkPipeline());
-    //   renderTesselationTerrain(cmd_buf, currentConstants, terrainTesselationRenderPipeline.getVkPipelineLayout());
+    //   cmd_buf.bindPipeline(vk::PipelineBindPoint::eGraphics,
+    //   terrainTesselationRenderPipeline.getVkPipeline()); renderTesselationTerrain(cmd_buf,
+    //   currentConstants, terrainTesselationRenderPipeline.getVkPipelineLayout());
     // }
 
     gBuffer->prepareForRead(cmd_buf);
