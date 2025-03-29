@@ -1,18 +1,15 @@
 #include "TerrainManager.hpp"
-#include "etna/Assert.hpp"
 
-#include <fmt/core.h>
-#include <glm/fwd.hpp>
-#include <tracy/Tracy.hpp>
 #include <vector>
 
+#include <glm/fwd.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <tracy/Tracy.hpp>
 
 #include <etna/GlobalContext.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
@@ -584,7 +581,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
         .indexCount = 6 * (gridSize + 1)});
       logger->info("Vertices:");
-      for (int32_t y = vertexGridSize; y >= 0; y--)
+      for (int32_t y = vertexGridSize - 1; y >= 0; y--)
       {
         for (uint32_t x = 0; x < 2; x++)
         {
@@ -600,7 +597,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       result.bounds.emplace_back(
         Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {1, vertexGridSize, 0, 0}});
       logger->info("Indices:");
-      for (uint32_t y = 0; y < gridSize + 1; y++)
+      for (uint32_t y = 0; y < gridSize; y++)
       {
         uint32_t currentIndices[] = {
           positionToIndex(0, y + 1, 2),
@@ -633,7 +630,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         glm::to_string(result.bounds.back().maxPos));
 
       currentOffsetAddition =
-        positionToIndex(1, gridSize + 1, 2) + 1; // because connected in the same mesh
+        positionToIndex(1, gridSize, 2) + 1; // because connected in the same mesh
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
         "Wrong index offset will be added! Maximum index for current "
@@ -653,7 +650,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       logger->info("Vertices:");
       for (uint32_t y = 0; y < 2; y++)
       {
-        for (uint32_t x = 1; x < vertexGridSize + 1; x++)
+        for (uint32_t x = 1; x < vertexGridSize; x++)
         {
 
           auto& vertex = result.vertices.emplace_back();
@@ -669,15 +666,15 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         Bounds{.minPos = {1, 0, 0, 0}, .maxPos = {vertexGridSize, 1, 0, 0}});
       logger->info("Indices:");
 
-      for (uint32_t x = 0; x < gridSize; x++)
+      for (uint32_t x = 0; x < gridSize - 1; x++)
       {
         uint32_t currentIndices[] = {
-          positionToIndex(x, 0, vertexGridSize),
-          positionToIndex(x + 1, 1, vertexGridSize),
-          positionToIndex(x, 1, vertexGridSize),
-          positionToIndex(x, 0, vertexGridSize),
-          positionToIndex(x + 1, 0, vertexGridSize),
-          positionToIndex(x + 1, 1, vertexGridSize)};
+          positionToIndex(x, 0, vertexGridSize - 1),
+          positionToIndex(x + 1, 1, vertexGridSize - 1),
+          positionToIndex(x, 1, vertexGridSize - 1),
+          positionToIndex(x, 0, vertexGridSize - 1),
+          positionToIndex(x + 1, 0, vertexGridSize - 1),
+          positionToIndex(x + 1, 1, vertexGridSize - 1)};
         for (auto index : currentIndices)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
@@ -701,7 +698,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         glm::to_string(result.bounds.back().minPos),
         glm::to_string(result.bounds.back().maxPos));
 
-      currentOffsetAddition = positionToIndex(gridSize, 1, vertexGridSize) + 1;
+      currentOffsetAddition = positionToIndex(gridSize - 1, 1, vertexGridSize - 1) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
         "Wrong index offset will be added! Maximum index for current "
@@ -1200,11 +1197,11 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
     glm::vec2 tileCenter = {};
     glm::vec2 diff = {};
 
-    // 00 - 0 degrees (0), 01 - 270 degrees(1), 10 - 90 degrees (2), 11 - 180 degrees(3)
+    // 00 - 0 degrees (0), 01 - 90 degrees(1), 10 - 270 degrees (2), 11 - 180 degrees(3)
     glm::mat4x4 rotationMatrices[] = {
       glm::identity<glm::mat4x4>(),
-      glm::mat4x4(0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1),
       glm::mat4x4(0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
+      glm::mat4x4(0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1),
       glm::mat4x4(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)};
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
@@ -1226,7 +1223,8 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
       newPosition = tileCenter;
 
-      instanceMatrices[meshOffset] = rotationMatrices[index] * glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x));
+      instanceMatrices[meshOffset] =
+        rotationMatrices[index] * glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x));
       instanceMatrices[meshOffset][3].x = newPosition.x;
       instanceMatrices[meshOffset][3].y = 0;
       instanceMatrices[meshOffset][3].z = newPosition.y;
