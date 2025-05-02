@@ -5,6 +5,7 @@
 #include <etna/PipelineManager.hpp>
 #include <etna/Profiling.hpp>
 #include <etna/RenderTargetStates.hpp>
+#include <vulkan/vulkan_enums.hpp>
 #include "etna/DescriptorSet.hpp"
 #include "etna/Etna.hpp"
 #include "imgui.h"
@@ -14,7 +15,7 @@
 
 
 WorldRenderer::WorldRenderer()
-  : terrainMgr{std::make_unique<TerrainManager>(7, 255)}
+  : terrainMgr{std::make_unique<TerrainManager>(11, 511)}
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , maxNumberOfSamples(16)
   , wireframeEnabled(false)
@@ -27,29 +28,32 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 
   auto& ctx = etna::get_context();
 
-  mainViewDepth = ctx.createImage(etna::Image::CreateInfo{
-    .extent = vk::Extent3D{resolution.x, resolution.y, 1},
-    .name = "main_view_depth",
-    .format = vk::Format::eD32Sfloat,
-    .imageUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
-  });
+  mainViewDepth = ctx.createImage(
+    etna::Image::CreateInfo{
+      .extent = vk::Extent3D{resolution.x, resolution.y, 1},
+      .name = "main_view_depth",
+      .format = vk::Format::eD32Sfloat,
+      .imageUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+    });
 
-  renderTarget = ctx.createImage(etna::Image::CreateInfo{
-    .extent = vk::Extent3D{resolution.x, resolution.y, 1},
-    .name = "render_target",
-    .format = renderTargetFormat,
-    .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
-      vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
-  });
+  renderTarget = ctx.createImage(
+    etna::Image::CreateInfo{
+      .extent = vk::Extent3D{resolution.x, resolution.y, 1},
+      .name = "render_target",
+      .format = renderTargetFormat,
+      .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
+        vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
+    });
 
   generationParamsBuffer.emplace(ctx.getMainWorkCount(), [&ctx](std::size_t i) {
-    return ctx.createBuffer(etna::Buffer::CreateInfo{
-      .size = sizeof(TerrainGenerationParams),
-      .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
-      .memoryUsage = VMA_MEMORY_USAGE_AUTO,
-      .allocationCreate =
-        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-      .name = fmt::format("generationConstants{}", i)});
+    return ctx.createBuffer(
+      etna::Buffer::CreateInfo{
+        .size = sizeof(TerrainGenerationParams),
+        .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
+        .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+        .allocationCreate =
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+        .name = fmt::format("generationConstants{}", i)});
   });
 
   gBuffer.emplace(resolution, renderTargetFormat);
@@ -60,17 +64,21 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
     -static_cast<glm::vec2>(params.terrainInChunks * params.chunk) / glm::vec2(2);
 
   constantsBuffer.emplace(ctx.getMainWorkCount(), [&ctx](std::size_t i) {
-    return ctx.createBuffer(etna::Buffer::CreateInfo{
-      .size = sizeof(UniformParams),
-      .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
-      .memoryUsage = VMA_MEMORY_USAGE_AUTO,
-      .allocationCreate =
-        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-      .name = fmt::format("constants{}", i)});
+    return ctx.createBuffer(
+      etna::Buffer::CreateInfo{
+        .size = sizeof(UniformParams),
+        .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
+        .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+        .allocationCreate =
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+        .name = fmt::format("constants{}", i)});
   });
 
   terrainSampler = etna::Sampler(
-    etna::Sampler::CreateInfo{.filter = vk::Filter::eLinear, .name = "terrain_sampler"});
+    etna::Sampler::CreateInfo{
+      .filter = vk::Filter::eLinear,
+      .addressMode = vk::SamplerAddressMode::eMirroredRepeat,
+      .name = "terrain_sampler"});
 
   oneShotCommands = ctx.createOneShotCmdMgr();
 }
@@ -228,17 +236,19 @@ void WorldRenderer::setupTerrainGeneration(vk::Format texture_format, vk::Extent
   auto& ctx = etna::get_context();
   auto& pipelineManager = ctx.getPipelineManager();
 
-  terrainMap = ctx.createImage(etna::Image::CreateInfo{
-    .extent = extent,
-    .name = "terrain_map",
-    .format = texture_format,
-    .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment |
-      vk::ImageUsageFlagBits::eStorage});
-  terrainNormalMap = ctx.createImage(etna::Image::CreateInfo{
-    .extent = extent,
-    .name = "terrain_normal_map",
-    .format = vk::Format::eR8G8B8A8Snorm,
-    .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage});
+  terrainMap = ctx.createImage(
+    etna::Image::CreateInfo{
+      .extent = extent,
+      .name = "terrain_map",
+      .format = texture_format,
+      .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment |
+        vk::ImageUsageFlagBits::eStorage});
+  terrainNormalMap = ctx.createImage(
+    etna::Image::CreateInfo{
+      .extent = extent,
+      .name = "terrain_normal_map",
+      .format = vk::Format::eR8G8B8A8Snorm,
+      .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage});
 
   terrainGenerationPipeline = pipelineManager.createGraphicsPipeline(
     "terrain_generator",
@@ -253,7 +263,7 @@ void WorldRenderer::setupTerrainGeneration(vk::Format texture_format, vk::Extent
   lightDisplacementPipeline = pipelineManager.createComputePipeline("lights_displacement", {});
 
   params.extent = shader_uvec2(extent.width, extent.height);
-  params.heightAmplifier = 200.0f;
+  params.heightAmplifier = 400.0f;
   params.heightOffset = 0.6f;
   generationParams = {.extent = params.extent, .numberOfSamples = 3, .persistence = 0.5};
 }
@@ -300,16 +310,20 @@ void WorldRenderer::loadLights()
   vk::DeviceSize directionalLightsSize = sizeof(DirectionalLight) * directionalLights.size();
   vk::DeviceSize lightsSize = sizeof(Light) * lights.size();
 
-  directionalLightsBuffer = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = directionalLightsSize,
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = fmt::format("DirectionalLights")});
-  lightsBuffer = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = lightsSize,
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = fmt::format("Lights")});
+  directionalLightsBuffer = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = directionalLightsSize,
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = fmt::format("DirectionalLights")});
+  lightsBuffer = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = lightsSize,
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = fmt::format("Lights")});
 
   transferHelper =
     std::make_unique<etna::BlockingTransferHelper>(etna::BlockingTransferHelper::CreateInfo{

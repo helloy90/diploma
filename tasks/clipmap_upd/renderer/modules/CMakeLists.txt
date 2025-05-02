@@ -1,0 +1,3 @@
+add_subdirectory(Light)
+add_subdirectory(TerrainGenerator)
+add_subdirectory(TerrainRender)
