@@ -734,7 +734,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
       .relemCount = static_cast<std::uint32_t>(2)});
 
-    glm::vec2 vertexOffset = glm::vec2(-static_cast<glm::float32>(vertexGridSize) * 0.5);
+    glm::vec2 vertexOffset = glm::vec2(-static_cast<glm::float32>(vertexGridSize) * 0.5f);
     // vertical
     {
       auto relem = (RenderElement{
@@ -1046,11 +1046,11 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
   result.matrices.reserve(instancesAmount);
   result.meshes.reserve(instancesAmount);
 
-  std::size_t crossMesh = 0;
-  std::size_t squareMesh = 1;
-  std::size_t fillerMesh = 2;
-  std::size_t trimMesh = 3;
-  std::size_t seamMesh = 4;
+  std::uint32_t crossMesh = 0;
+  std::uint32_t squareMesh = 1;
+  std::uint32_t fillerMesh = 2;
+  std::uint32_t trimMesh = 3;
+  std::uint32_t seamMesh = 4;
 
   const auto& identityMat = glm::identity<glm::mat4x4>();
 
@@ -1289,29 +1289,7 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
   glm::vec2 base = {};
 
   glm::vec2 newPosition = {};
-  // 4 inner squares
-  // {
-  //   scale = glm::vec2(1);
-  //   snappedPosition = glm::floor(cameraHorizontalPosition);
-
-  //   tileExtent = glm::vec2(tileSize);
-  //   base = snappedPosition - glm::vec2((tileSize));
-
-  //   for (uint32_t x = 0; x < 2; x++)
-  //   {
-  //     for (uint32_t z = 0; z < 2; z++)
-  //     {
-  //       newPosition = base + glm::vec2(x, z) * tileExtent;
-
-  //       instanceMatrices[meshOffset][3].x = newPosition.x;
-  //       instanceMatrices[meshOffset][3].y = 0;
-  //       instanceMatrices[meshOffset][3].z = newPosition.y;
-
-  //       meshOffset++;
-  //     }
-  //   }
-  // }
-
+  
   // cross
   {
     snappedPosition = glm::floor(cameraHorizontalPosition);
@@ -1334,11 +1312,11 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
     glm::vec2 fillerSkip = {};
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(1 << level);
+      scale = glm::vec2(static_cast<float>(1 << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
-      tileExtent = glm::vec2((tileSize) << level);
-      base = snappedPosition - glm::vec2((tileSize) << (level + 1));
+      tileExtent = glm::vec2(static_cast<float>(tileSize << level));
+      base = snappedPosition - glm::vec2(static_cast<float>((tileSize) << (level + 1)));
 
       for (uint32_t x = 0; x < 4; x++)
       {
@@ -1386,7 +1364,7 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
   {
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(1 << level);
+      scale = glm::vec2(static_cast<float>(1 << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
       newPosition = snappedPosition;
@@ -1421,10 +1399,10 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(1 << level);
+      scale = glm::vec2(static_cast<float>(1 << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
-      nextScale = glm::vec2(1 << (level + 1));
+      nextScale = glm::vec2(static_cast<float>(1 << (level + 1)));
       nextSnappedPosition = glm::floor(cameraHorizontalPosition / nextScale) * nextScale;
 
       tileCenter = snappedPosition + scale * glm::vec2(0.5);
@@ -1460,11 +1438,11 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(1 << level);
+      scale = glm::vec2(static_cast<float>(1 << level));
       nextScale = glm::vec2(1 << (level + 1));
       nextSnappedPosition = glm::floor(cameraHorizontalPosition / nextScale) * nextScale;
 
-      nextBase = nextSnappedPosition - glm::vec2((tileSize) << (level + 1));
+      nextBase = nextSnappedPosition - glm::vec2(static_cast<float>((tileSize) << (level + 1)));
 
       newPosition = nextBase;
 

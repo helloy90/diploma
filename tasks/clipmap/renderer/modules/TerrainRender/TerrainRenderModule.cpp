@@ -254,7 +254,8 @@ void TerrainRenderModule::cullTerrain(vk::CommandBuffer cmd_buf, vk::PipelineLay
   cmd_buf.bindDescriptorSets(
     vk::PipelineBindPoint::eCompute, pipeline_layout, 0, 1, &vkSet, 0, nullptr);
 
-  cmd_buf.dispatch((terrainMgr->getInstanceMeshes().size() + 127) / 128, 1, 1);
+  cmd_buf.dispatch(
+    (static_cast<uint32_t>(terrainMgr->getInstanceMeshes().size()) + 127) / 128, 1, 1);
 
   {
     std::array bufferBarriers = {
@@ -322,14 +323,11 @@ void TerrainRenderModule::renderTerrain(
     vk::PipelineBindPoint::eGraphics, pipeline_layout, 0, 1, &vkSet, 0, nullptr);
 
   cmd_buf.pushConstants<glm::mat4x4>(
-    pipeline_layout,
-    vk::ShaderStageFlagBits::eVertex,
-    0,
-    {packet.projView});
+    pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, {packet.projView});
 
   cmd_buf.drawIndexedIndirect(
     terrainMgr->getDrawCommandsBuffer().get(),
     0,
-    terrainMgr->getRenderElements().size(),
+    static_cast<uint32_t>(terrainMgr->getRenderElements().size()),
     sizeof(vk::DrawIndexedIndirectCommand));
 }
