@@ -11,7 +11,6 @@ target_link_libraries(terrain_generator_module PUBLIC etna render_utils gui scen
 
 
 target_add_shaders(terrain_generator_module
-    shaders/calculate_normal.comp
     shaders/generator.frag
     shaders/decoy.vert
 )

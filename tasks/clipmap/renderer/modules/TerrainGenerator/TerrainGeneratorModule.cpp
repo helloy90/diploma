@@ -28,11 +28,6 @@ void TerrainGeneratorModule::allocateResources(vk::Format map_format, vk::Extent
     .format = map_format,
     .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment |
       vk::ImageUsageFlagBits::eStorage});
-  terrainNormalMap = ctx.createImage(etna::Image::CreateInfo{
-    .extent = extent,
-    .name = "terrain_normal_map",
-    .format = vk::Format::eR8G8B8A8Snorm,
-    .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage});
 
   paramsBuffer = ctx.createBuffer(etna::Buffer::CreateInfo{
     .size = sizeof(TerrainGenerationParams),
@@ -45,11 +40,11 @@ void TerrainGeneratorModule::allocateResources(vk::Format map_format, vk::Extent
   oneShotCommands = ctx.createOneShotCmdMgr();
 
   terrainSampler = etna::Sampler(
-    etna::Sampler::CreateInfo{.filter = vk::Filter::eLinear, .name = "terrain_sampler"});
+    etna::Sampler::CreateInfo{.filter = vk::Filter::eLinear, .addressMode = vk::SamplerAddressMode::eMirroredRepeat, .name = "terrain_sampler"});
 
   params = {
     .extent = {extent.width, extent.height},
-    .numberOfSamples = 5,
+    .numberOfSamples = 2,
     .persistence = shader_float(0.3)};
 }
 
@@ -59,9 +54,6 @@ void TerrainGeneratorModule::loadShaders()
     "terrain_generator",
     {TERRAIN_GENERATOR_MODULE_SHADERS_ROOT "decoy.vert.spv",
      TERRAIN_GENERATOR_MODULE_SHADERS_ROOT "generator.frag.spv"});
-  etna::create_program(
-    "terrain_normal_map_calculation",
-    {TERRAIN_GENERATOR_MODULE_SHADERS_ROOT "calculate_normal.comp.spv"});
 }
 
 void TerrainGeneratorModule::setupPipelines()
@@ -74,12 +66,9 @@ void TerrainGeneratorModule::setupPipelines()
       .fragmentShaderOutput = {
         .colorAttachmentFormats = {terrainMap.getFormat()},
       }});
-
-  terrainNormalPipeline =
-    pipelineManager.createComputePipeline("terrain_normal_map_calculation", {});
 }
 
-void TerrainGeneratorModule::execute(glm::vec2 normal_map_fidelity)
+void TerrainGeneratorModule::execute()
 {
   auto commandBuffer = oneShotCommands->start();
 
@@ -136,65 +125,6 @@ void TerrainGeneratorModule::execute(glm::vec2 normal_map_fidelity)
     etna::set_state(
       commandBuffer,
       terrainMap.get(),
-      vk::PipelineStageFlagBits2::eComputeShader,
-      vk::AccessFlagBits2::eShaderStorageRead,
-      vk::ImageLayout::eGeneral,
-      vk::ImageAspectFlagBits::eColor);
-
-    etna::set_state(
-      commandBuffer,
-      terrainNormalMap.get(),
-      vk::PipelineStageFlagBits2::eComputeShader,
-      vk::AccessFlagBits2::eShaderStorageWrite,
-      vk::ImageLayout::eGeneral,
-      vk::ImageAspectFlagBits::eColor);
-
-    etna::flush_barriers(commandBuffer);
-
-    {
-      auto shaderInfo = etna::get_shader_program("terrain_normal_map_calculation");
-
-      auto set = etna::create_descriptor_set(
-        shaderInfo.getDescriptorLayoutId(0),
-        commandBuffer,
-        {etna::Binding{0, terrainMap.genBinding(terrainSampler.get(), vk::ImageLayout::eGeneral)},
-         etna::Binding{
-           1, terrainNormalMap.genBinding(terrainSampler.get(), vk::ImageLayout::eGeneral)}});
-
-      auto vkSet = set.getVkSet();
-
-      commandBuffer.bindDescriptorSets(
-        vk::PipelineBindPoint::eCompute,
-        terrainNormalPipeline.getVkPipelineLayout(),
-        0,
-        1,
-        &vkSet,
-        0,
-        nullptr);
-
-      commandBuffer.bindPipeline(
-        vk::PipelineBindPoint::eCompute, terrainNormalPipeline.getVkPipeline());
-
-      commandBuffer.pushConstants<glm::uvec2>(
-        terrainNormalPipeline.getVkPipelineLayout(),
-        vk::ShaderStageFlagBits::eCompute,
-        0,
-        {normal_map_fidelity});
-
-      commandBuffer.dispatch((glmExtent.x + 31) / 32, (glmExtent.y + 31) / 32, 1);
-    }
-
-    etna::set_state(
-      commandBuffer,
-      terrainMap.get(),
-      vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
-      vk::AccessFlagBits2::eShaderSampledRead,
-      vk::ImageLayout::eShaderReadOnlyOptimal,
-      vk::ImageAspectFlagBits::eColor);
-
-    etna::set_state(
-      commandBuffer,
-      terrainNormalMap.get(),
       vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
       vk::AccessFlagBits2::eShaderSampledRead,
       vk::ImageLayout::eShaderReadOnlyOptimal,

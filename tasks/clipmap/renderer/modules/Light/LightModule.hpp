@@ -22,13 +22,11 @@ public:
   void displaceLights(
     const etna::Buffer& height_params_buffer,
     const etna::Image& terrain_map,
-    const etna::Image& terrain_normal_map,
     const etna::Sampler& terrain_sampler);
 
   void drawGui(
     const etna::Buffer& height_params_buffer,
     const etna::Image& terrain_map,
-    const etna::Image& terrain_normal_map,
     const etna::Sampler& terrain_sampler);
 
   const etna::Buffer& getLightParamsBuffer() const { return paramsBuffer; }

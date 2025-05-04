@@ -16,7 +16,7 @@
 WorldRenderer::WorldRenderer()
   : lightModule()
   , terrainGeneratorModule()
-  , terrainRenderModule({.amplifier = 200.0f, .offset = 0.6f})
+  , terrainRenderModule({.amplifier = 40.0f, .offset = 0.6f})
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , wireframeEnabled(false)
 {
@@ -66,12 +66,11 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 // call only after loadShaders(...)
 void WorldRenderer::loadScene([[maybe_unused]] std::filesystem::path path)
 {
-  terrainGeneratorModule.execute({8, 8});
+  terrainGeneratorModule.execute();
 
   lightModule.displaceLights(
     terrainRenderModule.getHeightParamsBuffer(),
     terrainGeneratorModule.getMap(),
-    terrainGeneratorModule.getNormalMap(),
     terrainGeneratorModule.getSampler());
 }
 
@@ -250,7 +249,6 @@ void WorldRenderer::drawGui()
   lightModule.drawGui(
     terrainRenderModule.getHeightParamsBuffer(),
     terrainGeneratorModule.getMap(),
-    terrainGeneratorModule.getNormalMap(),
     terrainGeneratorModule.getSampler());
   terrainGeneratorModule.drawGui();
   terrainRenderModule.drawGui();
@@ -334,7 +332,6 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
       gBuffer->genColorAttachmentParams(),
       gBuffer->genDepthAttachmentParams(),
       terrainGeneratorModule.getMap(),
-      terrainGeneratorModule.getNormalMap(),
       terrainGeneratorModule.getSampler());
 
     etna::set_state(

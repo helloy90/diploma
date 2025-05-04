@@ -12,11 +12,27 @@ layout(location = 0) in VS_OUT
 }
 surf;
 
-layout(binding = 5) uniform sampler2D normalMap;
+layout(binding = 4) uniform sampler2D heightMap;
+
+const vec2 fidelity = vec2(8, 8);
+
+vec3 generateNormal(vec2 currentTexCoord, ivec2 heightMapSize) {
+  float eps = float(fidelity.x) / float(heightMapSize.x);
+
+  float left = texture(heightMap, currentTexCoord + vec2(-eps, 0)).x;
+  float right = texture(heightMap, currentTexCoord + vec2(eps, 0)).x;
+  float up = texture(heightMap, currentTexCoord + vec2(0, eps)).x;
+  float down = texture(heightMap, currentTexCoord + vec2(0, -eps)).x;
+
+  vec3 normal = normalize(vec3(left - right, 2.0 * eps, down - up));
+
+  return normal;
+}
 
 void main()
 {
+  ivec2 heightMapSize = textureSize(heightMap, 0);
   gAlbedo = vec4(0.5, 0.5, 0.5, 1);
-  gNormal = texture(normalMap, surf.texCoord).rgb;
+  gNormal = generateNormal(surf.texCoord, heightMapSize);
   gMaterial = vec4(0.0, 0.6, 0.0, 1.0);
 }

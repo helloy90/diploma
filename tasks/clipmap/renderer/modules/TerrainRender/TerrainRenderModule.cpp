@@ -16,7 +16,7 @@
 TerrainRenderModule::TerrainRenderModule()
   : terrainMgr(std::make_unique<TerrainManager>(7, 255))
   , terrainParams({
-      .extent = shader_uvec2(4096),
+      .extent = shader_uvec2(64),
       .chunk = shader_uvec2(16),
       .terrainInChunks = shader_uvec2(64, 64),
       .terrainOffset = shader_vec2(-512, -512),
@@ -35,7 +35,7 @@ TerrainRenderModule::TerrainRenderModule(TerrainParams par)
 TerrainRenderModule::TerrainRenderModule(HeightParams par)
   : terrainMgr(std::make_unique<TerrainManager>(7, 255))
   , terrainParams(
-      {.extent = shader_uvec2(4096),
+      {.extent = shader_uvec2(64),
        .chunk = shader_uvec2(16, 16),
        .terrainInChunks = shader_uvec2(64, 64),
        .terrainOffset = shader_vec2(-512, -512)})
@@ -166,7 +166,6 @@ void TerrainRenderModule::execute(
   std::vector<etna::RenderTargetState::AttachmentParams> color_attachment_params,
   etna::RenderTargetState::AttachmentParams depth_attachment_params,
   const etna::Image& terrain_map,
-  const etna::Image& terrain_normal_map,
   const etna::Sampler& terrain_sampler)
 {
   cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
@@ -183,7 +182,6 @@ void TerrainRenderModule::execute(
       terrainRenderPipeline.getVkPipelineLayout(),
       packet,
       terrain_map,
-      terrain_normal_map,
       terrain_sampler);
   }
 }
@@ -288,7 +286,6 @@ void TerrainRenderModule::renderTerrain(
   vk::PipelineLayout pipeline_layout,
   const RenderPacket& packet,
   const etna::Image& terrain_map,
-  const etna::Image& terrain_normal_map,
   const etna::Sampler& terrain_sampler)
 {
   ZoneScoped;
@@ -311,10 +308,6 @@ void TerrainRenderModule::renderTerrain(
       etna::Binding{3, terrainParamsBuffer.genBinding()},
       etna::Binding{
         4, terrain_map.genBinding(terrain_sampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
-      etna::Binding{
-        5,
-        terrain_normal_map.genBinding(
-          terrain_sampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
     });
 
   auto vkSet = set.getVkSet();

@@ -113,7 +113,6 @@ void LightModule::loadLights()
 void LightModule::displaceLights(
   const etna::Buffer& height_params_buffer,
   const etna::Image& terrain_map,
-  const etna::Image& terrain_normal_map,
   const etna::Sampler& terrain_sampler)
 {
   auto commandBuffer = oneShotCommands->start();
@@ -128,13 +127,6 @@ void LightModule::displaceLights(
       vk::ImageLayout::eGeneral,
       vk::ImageAspectFlagBits::eColor);
 
-    etna::set_state(
-      commandBuffer,
-      terrain_normal_map.get(),
-      vk::PipelineStageFlagBits2::eComputeShader,
-      vk::AccessFlagBits2::eShaderStorageWrite,
-      vk::ImageLayout::eGeneral,
-      vk::ImageAspectFlagBits::eColor);
 
     etna::flush_barriers(commandBuffer);
 
@@ -207,14 +199,6 @@ void LightModule::displaceLights(
       vk::ImageLayout::eShaderReadOnlyOptimal,
       vk::ImageAspectFlagBits::eColor);
 
-    etna::set_state(
-      commandBuffer,
-      terrain_normal_map.get(),
-      vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
-      vk::AccessFlagBits2::eShaderSampledRead,
-      vk::ImageLayout::eShaderReadOnlyOptimal,
-      vk::ImageAspectFlagBits::eColor);
-
     etna::flush_barriers(commandBuffer);
   }
   ETNA_CHECK_VK_RESULT(commandBuffer.end());
@@ -226,7 +210,6 @@ void LightModule::displaceLights(
 void LightModule::drawGui(
   const etna::Buffer& height_params_buffer,
   const etna::Image& terrain_map,
-  const etna::Image& terrain_normal_map,
   const etna::Sampler& terrain_sampler)
 {
   ImGui::Begin("Application Settings");
@@ -304,7 +287,7 @@ void LightModule::drawGui(
       ETNA_CHECK_VK_RESULT(etna::get_context().getDevice().waitIdle());
       transferHelper->uploadBuffer(
         *oneShotCommands, lightsBuffer, 0, std::as_bytes(std::span(lights)));
-      displaceLights(height_params_buffer, terrain_map, terrain_normal_map, terrain_sampler);
+      displaceLights(height_params_buffer, terrain_map, terrain_sampler);
       lightsChanged = false;
     }
   }

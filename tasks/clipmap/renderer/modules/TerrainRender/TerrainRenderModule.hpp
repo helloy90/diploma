@@ -34,7 +34,6 @@ public:
     std::vector<etna::RenderTargetState::AttachmentParams> color_attachment_params,
     etna::RenderTargetState::AttachmentParams depth_attachment_params,
     const etna::Image& terrain_map,
-    const etna::Image& terrain_normal_map,
     const etna::Sampler& terrain_sampler);
 
   void drawGui();
@@ -50,7 +49,6 @@ private:
     vk::PipelineLayout pipeline_layout,
     const RenderPacket& packet,
     const etna::Image& terrain_map,
-    const etna::Image& terrain_normal_map,
     const etna::Sampler& terrain_sampler);
 
 private:
