@@ -8,9 +8,8 @@
 #include <etna/PipelineManager.hpp>
 #include <etna/Profiling.hpp>
 #include <etna/RenderTargetStates.hpp>
-#include <vulkan/vulkan_enums.hpp>
+#include <etna/Sampler.hpp>
 
-#include "etna/Sampler.hpp"
 #include "render_utils/Utilities.hpp"
 
 
@@ -226,6 +225,8 @@ void WorldRenderer::update(const FramePacket& packet)
       .projView = params.projView,
       .cameraWorldPosition = params.cameraWorldPosition,
       .time = packet.currentTime};
+
+    terrainRenderModule.update(renderPacket);
   }
 }
 
@@ -360,11 +361,7 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
         vk::PipelineBindPoint::eGraphics, deferredShadingPipeline.getVkPipeline());
       deferredShading(cmd_buf, currentConstants, deferredShadingPipeline.getVkPipelineLayout());
     }
-
-    gBuffer->continueDepthWrite(cmd_buf);
-
-    etna::flush_barriers(cmd_buf);
-
+    
     etna::set_state(
       cmd_buf,
       renderTarget.get(),

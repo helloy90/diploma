@@ -2,12 +2,14 @@
 
 #include <glm/glm.hpp>
 
+#include <etna/ComputePipeline.hpp>
 #include <etna/GraphicsPipeline.hpp>
 #include <etna/RenderTargetStates.hpp>
 #include <etna/Buffer.hpp>
 #include <etna/Sampler.hpp>
 
 #include "scene/TerrainManager.hpp"
+#include "shaders/MeshesParams.h"
 #include "shaders/TerrainParams.h"
 #include "../RenderPacket.hpp"
 #include "../HeightParams.hpp"
@@ -22,6 +24,9 @@ public:
   void allocateResources();
   void loadShaders();
   void setupPipelines(bool wireframe_enabled, vk::Format render_target_format);
+
+  void update(const RenderPacket& packet);
+
   void execute(
     vk::CommandBuffer cmd_buf,
     const RenderPacket& packet,
@@ -37,6 +42,9 @@ public:
   const etna::Buffer& getHeightParamsBuffer() const { return heightParamsBuffer; }
 
 private:
+  void cullTerrain(
+    vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout);
+
   void renderTerrain(
     vk::CommandBuffer cmd_buf,
     vk::PipelineLayout pipeline_layout,
@@ -48,11 +56,14 @@ private:
 private:
   std::unique_ptr<TerrainManager> terrainMgr;
 
-  TerrainParams params;
+  TerrainParams terrainParams;
   HeightParams heightParams;
+  MeshesParams meshesParams;
 
-  etna::Buffer paramsBuffer;
+  etna::Buffer terrainParamsBuffer;
   etna::Buffer heightParamsBuffer;
+  etna::Buffer meshesParamsBuffer;
 
   etna::GraphicsPipeline terrainRenderPipeline;
+  etna::ComputePipeline cullingPipeline;
 };

@@ -11,8 +11,7 @@ target_link_libraries(terrain_render_module PUBLIC etna render_utils gui tinyglt
 
 
 target_add_shaders(terrain_render_module
-    shaders/chunk.vert
-    shaders/subdivide_chunk.tesc
-    shaders/process_chunk.tese
-    shaders/terrain.frag
+    shaders/clipmap.vert
+    shaders/clipmap.frag
+    shaders/culling.comp
 )
