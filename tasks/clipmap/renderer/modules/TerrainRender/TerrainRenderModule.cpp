@@ -26,13 +26,15 @@ TerrainRenderModule::TerrainRenderModule()
 }
 
 TerrainRenderModule::TerrainRenderModule(TerrainParams par)
-  : terrainParams(par)
+  : terrainMgr(std::make_unique<TerrainManager>(7, 255))
+  , terrainParams(par)
   , heightParams({.amplifier = shader_float(200.0f), .offset = shader_float(0.6f)})
 {
 }
 
 TerrainRenderModule::TerrainRenderModule(HeightParams par)
-  : terrainParams(
+  : terrainMgr(std::make_unique<TerrainManager>(7, 255))
+  , terrainParams(
       {.extent = shader_uvec2(4096),
        .chunk = shader_uvec2(16, 16),
        .terrainInChunks = shader_uvec2(64, 64),
@@ -132,13 +134,19 @@ void TerrainRenderModule::setupPipelines(bool wireframe_enabled, vk::Format rend
                .blendEnable = vk::False,
                .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                  vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+             },
+             {
+               .blendEnable = vk::False,
+               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
              }},
           .logicOpEnable = false,
           .logicOp = {},
         },
       .fragmentShaderOutput =
         {
-          .colorAttachmentFormats = {render_target_format, vk::Format::eR8G8B8A8Snorm},
+          .colorAttachmentFormats =
+            {render_target_format, vk::Format::eR8G8B8A8Snorm, vk::Format::eR8G8B8A8Unorm},
           .depthAttachmentFormat = vk::Format::eD32Sfloat,
         },
     });
@@ -315,7 +323,7 @@ void TerrainRenderModule::renderTerrain(
 
   cmd_buf.pushConstants<glm::mat4x4>(
     pipeline_layout,
-    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+    vk::ShaderStageFlagBits::eVertex,
     0,
     {packet.projView});
 

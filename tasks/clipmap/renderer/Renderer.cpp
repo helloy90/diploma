@@ -7,7 +7,6 @@
 #include <etna/Profiling.hpp>
 
 #include <imgui.h>
-#include <vulkan/vulkan.hpp>
 
 
 Renderer::Renderer(glm::uvec2 res)
@@ -25,19 +24,21 @@ void Renderer::initVulkan(std::span<const char*> instance_extensions)
   std::vector<const char*> deviceExtensions;
 
   deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+  deviceExtensions.push_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
 
   etna::initialize(etna::InitParams{
-    .applicationName = "deferred_renderer",
+    .applicationName = "project_renderer",
     .applicationVersion = VK_MAKE_VERSION(0, 1, 0),
     .instanceExtensions = instanceExtensions,
     .deviceExtensions = deviceExtensions,
     .features =
-      vk::PhysicalDeviceFeatures2{
-        .features =
-          {.tessellationShader = vk::True,
-           .multiDrawIndirect = vk::True,
-           .fillModeNonSolid = vk::True /*debug*/,
-           .fragmentStoresAndAtomics = vk::True}},
+      {.features =
+         {.tessellationShader = vk::True,
+          .multiDrawIndirect = vk::True,
+          .fillModeNonSolid = vk::True /*debug*/,
+          .fragmentStoresAndAtomics = vk::True}},
+    .descriptorIndexingFeatures =
+      {.shaderSampledImageArrayNonUniformIndexing = vk::True, .runtimeDescriptorArray = vk::True},
     .physicalDeviceIndexOverride = {},
     .numFramesInFlight = 2,
   });
@@ -68,15 +69,13 @@ void Renderer::initFrameDelivery(vk::UniqueSurfaceKHR a_surface, ResolutionProvi
 
   worldRenderer->allocateResources(resolution);
   worldRenderer->loadShaders();
-  worldRenderer->loadLights();
   worldRenderer->setupRenderPipelines();
-  worldRenderer->setupTerrainGeneration(vk::Format::eR32Sfloat, {4096, 4096, 1});
-  worldRenderer->generateTerrain();
+  worldRenderer->loadCubemap();
 }
 
-void Renderer::loadScene()
+void Renderer::loadScene(std::filesystem::path path)
 {
-  worldRenderer->loadScene();
+  worldRenderer->loadScene(path);
 }
 
 void Renderer::debugInput(const Keyboard& kb)
@@ -96,14 +95,13 @@ void Renderer::update(const FramePacket& packet)
 
 void Renderer::drawGui()
 {
-  ImGui::Begin("Render Settings");
+  ImGui::Begin("Application Settings");
 
-  if (ImGui::CollapsingHeader("Application Settings"))
+  worldRenderer->drawGui();
+
+  if (ImGui::Checkbox("Use Vsync", &useVsync))
   {
-    if (ImGui::Checkbox("Use Vsync", &useVsync))
-    {
-      swapchainRecreationNeeded = true;
-    }
+    swapchainRecreationNeeded = true;
   }
 
   if (ImGui::Button("Reload shaders"))
@@ -122,7 +120,6 @@ void Renderer::drawFrame()
     ZoneScopedN("drawGui");
     guiRenderer->nextFrame();
     ImGui::NewFrame();
-    worldRenderer->drawGui();
     drawGui();
     ImGui::Render();
   }
@@ -201,7 +198,7 @@ void Renderer::drawFrame()
 void Renderer::reloadShaders()
 {
   const int retval = std::system("cd " GRAPHICS_COURSE_ROOT "/build"
-                                 " && cmake --build . --target deferred_renderer_shaders");
+                                 " && cmake --build . --target project_renderer_shaders");
   if (retval != 0)
     spdlog::warn("Shader recompilation returned a non-zero return code!");
   else

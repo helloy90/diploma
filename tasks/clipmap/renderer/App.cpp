@@ -21,11 +21,12 @@ App::App()
 
   renderer->initFrameDelivery(std::move(surface), [this]() { return mainWindow->getResolution(); });
 
-  mainCam.lookAt({0, 10, 0}, {10, 0, 10}, {0, 1, 0});
+  mainCam.lookAt({0, 20, 0}, {10, 0, 10}, {0, 1, 0});
 
+  // note - maybe bad (see shadowmap)
   ImGuiRenderer::enableImGuiForWindow(mainWindow->native());
 
-  renderer->loadScene();
+  renderer->loadScene(GRAPHICS_COURSE_RESOURCES_ROOT "/scenes/Avocado/Avocado_baked.gltf");
 }
 
 void App::run()
@@ -41,7 +42,7 @@ void App::run()
 
     processInput(diffTime);
 
-    drawFrame();
+    drawFrame(diffTime);
 
     FrameMark;
   }
@@ -55,9 +56,9 @@ void App::processInput(float dt)
     mainWindow->askToClose();
 
   if (is_held_down(mainWindow->keyboard[KeyboardKey::kLeftShift]))
-    camMoveSpeed = 50;
-  else
     camMoveSpeed = 10;
+  else
+    camMoveSpeed = 2;
 
   if (mainWindow->mouse[MouseButton::mbRight] == ButtonState::Rising)
     mainWindow->captureMouse = !mainWindow->captureMouse;
@@ -69,13 +70,14 @@ void App::processInput(float dt)
   renderer->debugInput(mainWindow->keyboard);
 }
 
-void App::drawFrame()
+void App::drawFrame(float dt)
 {
   ZoneScoped;
 
   renderer->update(FramePacket{
     .mainCam = mainCam,
     .currentTime = static_cast<float>(windowing.getTime()),
+    .deltaTime = dt
   });
   renderer->drawFrame();
 }

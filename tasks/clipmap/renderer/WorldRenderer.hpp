@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 
 #include <etna/Image.hpp>
@@ -10,12 +11,17 @@
 #include <etna/GpuSharedResource.hpp>
 #include <glm/glm.hpp>
 
-#include "scene/TerrainManager.hpp"
 #include "wsi/Keyboard.hpp"
 
+#include "modules/Light/LightModule.hpp"
+#include "modules/TerrainGenerator/TerrainGeneratorModule.hpp"
+#include "modules/TerrainRender/TerrainRenderModule.hpp"
+
+#include "modules/RenderPacket.hpp"
+
 #include "FramePacket.hpp"
-#include "shaders/terrain/UniformParams.h"
-#include "shaders/terrain/TerrainGenerationParams.h"
+
+#include "shaders/UniformParams.h"
 #include "GBuffer.hpp"
 
 
@@ -24,14 +30,13 @@ class WorldRenderer
 public:
   WorldRenderer();
 
-  void loadScene();
-  void loadShaders();
+  void loadScene(std::filesystem::path path);
   void allocateResources(glm::uvec2 swapchain_resolution);
+  void loadShaders();
   void setupRenderPipelines();
   void rebuildRenderPipelines();
-  void setupTerrainGeneration(vk::Format texture_format, vk::Extent3D extent);
-  void generateTerrain();
-  void loadLights();
+
+  void loadCubemap();
 
   void debugInput(const Keyboard& kb);
   void update(const FramePacket& packet);
@@ -39,53 +44,30 @@ public:
   void renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_image);
 
 private:
-  void cullTerrain(
-    vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
-
-  void renderTerrain(
-    vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
-  void renderTesselationTerrain(
-    vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
-
   void deferredShading(
     vk::CommandBuffer cmd_buf, etna::Buffer& constants, vk::PipelineLayout pipeline_layout);
 
-  void updateConstants(etna::Buffer& constants);
-
 private:
-  std::unique_ptr<TerrainManager> terrainMgr;
+  LightModule lightModule;
+  TerrainGeneratorModule terrainGeneratorModule;
+  TerrainRenderModule terrainRenderModule;
 
   vk::Format renderTargetFormat;
 
-  etna::Image mainViewDepth;
-
-  etna::Image terrainMap;
-  etna::Image terrainNormalMap;
-  std::optional<etna::GpuSharedResource<etna::Buffer>> generationParamsBuffer;
-  TerrainGenerationParams generationParams;
-  uint32_t maxNumberOfSamples;
-
+  etna::Image cubemapTexture;
+  
   etna::Image renderTarget;
 
   std::optional<GBuffer> gBuffer;
-  etna::Buffer lightsBuffer;
-  etna::Buffer directionalLightsBuffer;
 
   UniformParams params;
+  RenderPacket renderPacket;
 
   std::optional<etna::GpuSharedResource<etna::Buffer>> constantsBuffer;
 
-  etna::GraphicsPipeline terrainGenerationPipeline;
-  etna::GraphicsPipeline terrainRenderPipeline;
-  etna::GraphicsPipeline terrainTesselationRenderPipeline;
   etna::GraphicsPipeline deferredShadingPipeline;
 
-  etna::ComputePipeline cullingPipeline;
-
-  etna::ComputePipeline terrainNormalPipeline;
-  etna::ComputePipeline lightDisplacementPipeline;
-
-  etna::Sampler terrainSampler;
+  etna::Sampler cubemapSampler;
 
   bool wireframeEnabled;
 
