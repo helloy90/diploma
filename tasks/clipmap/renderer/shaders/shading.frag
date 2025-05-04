@@ -206,7 +206,7 @@ void main() {
     const vec3 reflection = texture(cubemap, reflect(viewDirection, normal)).rgb;
 
     // change to IBL later
-    vec3 color = vec3(albedo * 0.3);
+    vec3 color = vec3(albedo * 0.5);
 
     vec3 skyboxTexCoord = (uniformParams.invProjViewMat3 * screenSpacePosition).xyz;
     vec3 skyboxColor = texture(cubemap, normalize(skyboxTexCoord)).rgb;

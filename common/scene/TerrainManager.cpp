@@ -70,9 +70,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
   // cross mesh
   {
-    result.meshes.push_back(Mesh{
-      .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
-      .relemCount = static_cast<std::uint32_t>(2)});
+    result.meshes.push_back(
+      Mesh{
+        .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
+        .relemCount = static_cast<std::uint32_t>(2)});
 
     // horizontal
     {
@@ -105,9 +106,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      result.bounds.emplace_back(Bounds{
-        .minPos = {-static_cast<int32_t>(tileSize), 0, 0, 0},
-        .maxPos = {static_cast<int32_t>(vertexTileSize), 1, 0, 0}});
+      result.bounds.emplace_back(
+        Bounds{
+          .minPos = {-static_cast<int32_t>(tileSize), 0, 0, 0},
+          .maxPos = {static_cast<int32_t>(vertexTileSize), 1, 0, 0}});
 
       if (DEBUG_FILE_WRITE)
       {
@@ -198,9 +200,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      result.bounds.emplace_back(Bounds{
-        .minPos = {0, -static_cast<int32_t>(tileSize), 0, 0},
-        .maxPos = {1, static_cast<int32_t>(vertexTileSize), 0, 0}});
+      result.bounds.emplace_back(
+        Bounds{
+          .minPos = {0, -static_cast<int32_t>(tileSize), 0, 0},
+          .maxPos = {1, static_cast<int32_t>(vertexTileSize), 0, 0}});
 
       if (DEBUG_FILE_WRITE)
       {
@@ -263,9 +266,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
   // square tile
   {
-    result.meshes.push_back(Mesh{
-      .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
-      .relemCount = static_cast<std::uint32_t>(1)});
+    result.meshes.push_back(
+      Mesh{
+        .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
+        .relemCount = static_cast<std::uint32_t>(1)});
 
     auto relem = (RenderElement{
       .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
@@ -360,9 +364,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
   // filler meshes
   {
-    result.meshes.push_back(Mesh{
-      .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
-      .relemCount = static_cast<std::uint32_t>(4)});
+    result.meshes.push_back(
+      Mesh{
+        .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
+        .relemCount = static_cast<std::uint32_t>(4)});
 
     uint32_t offset = tileSize;
     {
@@ -574,9 +579,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      result.bounds.emplace_back(Bounds{
-        .minPos = {-int32_t(offset + 0), 0, 0, 0},
-        .maxPos = {-int32_t(offset + vertexTileSize - 1), 1, 0, 0}});
+      result.bounds.emplace_back(
+        Bounds{
+          .minPos = {-int32_t(offset + 0), 0, 0, 0},
+          .maxPos = {-int32_t(offset + vertexTileSize - 1), 1, 0, 0}});
 
       if (DEBUG_FILE_WRITE)
       {
@@ -664,9 +670,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      result.bounds.emplace_back(Bounds{
-        .minPos = {0, -int32_t(offset + 0), 0, 0},
-        .maxPos = {1, -int32_t(offset + vertexTileSize - 1), 0, 0}});
+      result.bounds.emplace_back(
+        Bounds{
+          .minPos = {0, -int32_t(offset + 0), 0, 0},
+          .maxPos = {1, -int32_t(offset + vertexTileSize - 1), 0, 0}});
 
       if (DEBUG_FILE_WRITE)
       {
@@ -730,9 +737,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
   // trim mesh
   {
-    result.meshes.push_back(Mesh{
-      .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
-      .relemCount = static_cast<std::uint32_t>(2)});
+    result.meshes.push_back(
+      Mesh{
+        .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
+        .relemCount = static_cast<std::uint32_t>(2)});
 
     glm::vec2 vertexOffset = glm::vec2(-static_cast<glm::float32>(vertexGridSize) * 0.5f);
     // vertical
@@ -904,9 +912,10 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
   // seam
   {
-    result.meshes.push_back(Mesh{
-      .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
-      .relemCount = static_cast<std::uint32_t>(1)});
+    result.meshes.push_back(
+      Mesh{
+        .firstRelem = static_cast<std::uint32_t>(result.relems.size()),
+        .relemCount = static_cast<std::uint32_t>(1)});
 
     auto relem = (RenderElement{
       .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
@@ -1110,72 +1119,84 @@ void TerrainManager::uploadData(
 {
   auto& ctx = etna::get_context();
 
-  unifiedVbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = vertices.size_bytes(),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedTerrainVbuf",
-  });
+  unifiedVbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = vertices.size_bytes(),
+      .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedTerrainVbuf",
+    });
 
-  unifiedIbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = indices.size_bytes(),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedTerrainIbuf",
-  });
+  unifiedIbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = indices.size_bytes(),
+      .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedTerrainIbuf",
+    });
 
   transferHelper->uploadBuffer<Vertex>(*oneShotCommands, unifiedVbuf, 0, vertices);
   transferHelper->uploadBuffer<std::uint32_t>(*oneShotCommands, unifiedIbuf, 0, indices);
 
-  unifiedRelemsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = renderElements.size() * sizeof(RenderElementGLSLCompat),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedRelemsbuf"});
+  unifiedRelemsbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = renderElements.size() * sizeof(RenderElementGLSLCompat),
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedRelemsbuf"});
 
   // maybe unnesessary
   std::vector<RenderElementGLSLCompat> renderElementsData;
   renderElementsData.reserve(renderElements.size());
   for (const auto& relem : renderElements)
   {
-    renderElementsData.emplace_back(RenderElementGLSLCompat{
-      .vertexOffset = relem.vertexOffset,
-      .indexOffset = relem.indexOffset,
-      .indexCount = relem.indexCount});
+    renderElementsData.emplace_back(
+      RenderElementGLSLCompat{
+        .vertexOffset = relem.vertexOffset,
+        .indexOffset = relem.indexOffset,
+        .indexCount = relem.indexCount});
   }
 
   transferHelper->uploadBuffer<RenderElementGLSLCompat>(
     *oneShotCommands, unifiedRelemsbuf, 0, std::span(renderElementsData));
 
-  unifiedBoundsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = renderElementsBounds.size() * sizeof(Bounds),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedBoundsbuf"});
-  unifiedMeshesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = meshes.size() * sizeof(Mesh),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedMeshesbuf"});
+  unifiedBoundsbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = renderElementsBounds.size() * sizeof(Bounds),
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedBoundsbuf"});
+  unifiedMeshesbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = meshes.size() * sizeof(Mesh),
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedMeshesbuf"});
 
   unifiedInstanceMatricesbuf.emplace(
     ctx.getMainWorkCount(),
     [&ctx, instanceMatricesSize = this->instanceMatrices.size()](std::size_t i) {
-      return ctx.createBuffer(etna::Buffer::CreateInfo{
-        .size = instanceMatricesSize * sizeof(glm::mat4x4),
-        .bufferUsage =
-          vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-        .memoryUsage = VMA_MEMORY_USAGE_AUTO,
-        .allocationCreate =
-          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-        .name = fmt::format("unifiedInstanceMatricesbuf{}", i)});
+      return ctx.createBuffer(
+        etna::Buffer::CreateInfo{
+          .size = instanceMatricesSize * sizeof(glm::mat4x4),
+          .bufferUsage =
+            vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+          .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+          .allocationCreate = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+            VMA_ALLOCATION_CREATE_MAPPED_BIT,
+          .name = fmt::format("unifiedInstanceMatricesbuf{}", i)});
     });
 
-  unifiedInstanceMeshesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = instanceMeshes.size() * sizeof(std::uint32_t),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedInstanceMeshesbuf"});
+  unifiedInstanceMeshesbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = instanceMeshes.size() * sizeof(std::uint32_t),
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedInstanceMeshesbuf"});
 
   transferHelper->uploadBuffer<Bounds>(
     *oneShotCommands, unifiedBoundsbuf, 0, std::span(renderElementsBounds));
@@ -1191,17 +1212,21 @@ void TerrainManager::uploadData(
   }
 
   // filled on GPU when culling
-  unifiedDrawRelemsInstanceIndicesbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = drawRelemsInstancesIndicesSize * sizeof(std::uint32_t),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedDrawRelemsInstanceIndicesbuf"});
+  unifiedDrawRelemsInstanceIndicesbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = drawRelemsInstancesIndicesSize * sizeof(std::uint32_t),
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedDrawRelemsInstanceIndicesbuf"});
 
-  unifiedRelemInstanceOffsetsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = renderElements.size() * sizeof(std::uint32_t),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedRelemInstanceOffsetsbuf"});
+  unifiedRelemInstanceOffsetsbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = renderElements.size() * sizeof(std::uint32_t),
+      .bufferUsage =
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedRelemInstanceOffsetsbuf"});
 
   std::vector<std::uint32_t> relemInstanceOffsets(renderElements.size(), 0);
   for (const auto& meshIdx : instanceMeshes)
@@ -1227,23 +1252,25 @@ void TerrainManager::uploadData(
   transferHelper->uploadBuffer<std::uint32_t>(
     *oneShotCommands, unifiedRelemInstanceOffsetsbuf, 0, std::span(relemInstanceOffsets));
 
-  unifiedDrawCommandsbuf = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = renderElements.size() * sizeof(vk::DrawIndexedIndirectCommand),
-    .bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer |
-      vk::BufferUsageFlagBits::eIndirectBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    .name = "unifiedDrawCommandsbuf"});
+  unifiedDrawCommandsbuf = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = renderElements.size() * sizeof(vk::DrawIndexedIndirectCommand),
+      .bufferUsage = vk::BufferUsageFlagBits::eTransferDst |
+        vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      .name = "unifiedDrawCommandsbuf"});
 
   std::vector<vk::DrawIndexedIndirectCommand> drawCommands;
   drawCommands.reserve(renderElements.size());
   for (uint32_t i = 0; i < renderElements.size(); i++)
   {
-    drawCommands.emplace_back(vk::DrawIndexedIndirectCommand{
-      .indexCount = renderElements[i].indexCount,
-      .instanceCount = 0,
-      .firstIndex = renderElements[i].indexOffset,
-      .vertexOffset = static_cast<std::int32_t>(renderElements[i].vertexOffset),
-      .firstInstance = relemInstanceOffsets[i]});
+    drawCommands.emplace_back(
+      vk::DrawIndexedIndirectCommand{
+        .indexCount = renderElements[i].indexCount,
+        .instanceCount = 0,
+        .firstIndex = renderElements[i].indexOffset,
+        .vertexOffset = static_cast<std::int32_t>(renderElements[i].vertexOffset),
+        .firstInstance = relemInstanceOffsets[i]});
   }
 
   transferHelper->uploadBuffer<vk::DrawIndexedIndirectCommand>(
@@ -1289,7 +1316,7 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
   glm::vec2 base = {};
 
   glm::vec2 newPosition = {};
-  
+
   // cross
   {
     snappedPosition = glm::floor(cameraHorizontalPosition);
@@ -1439,7 +1466,7 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
       scale = glm::vec2(static_cast<float>(1 << level));
-      nextScale = glm::vec2(1 << (level + 1));
+      nextScale = glm::vec2(static_cast<float>(1 << (level + 1)));
       nextSnappedPosition = glm::floor(cameraHorizontalPosition / nextScale) * nextScale;
 
       nextBase = nextSnappedPosition - glm::vec2(static_cast<float>((tileSize) << (level + 1)));

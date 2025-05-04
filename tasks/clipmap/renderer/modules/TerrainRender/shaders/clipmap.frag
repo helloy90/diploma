@@ -18,5 +18,5 @@ void main()
 {
   gAlbedo = vec4(0.5, 0.5, 0.5, 1);
   gNormal = texture(normalMap, surf.texCoord).rgb;
-  gMaterial = vec4(0.0, 0.6, 0.05, 1.0);
+  gMaterial = vec4(0.0, 0.6, 0.0, 1.0);
 }
