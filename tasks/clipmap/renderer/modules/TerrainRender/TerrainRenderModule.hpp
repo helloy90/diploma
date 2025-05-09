@@ -42,7 +42,7 @@ public:
 
 private:
   void cullTerrain(
-    vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout);
+    vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout, const RenderPacket& packet);
 
   void renderTerrain(
     vk::CommandBuffer cmd_buf,

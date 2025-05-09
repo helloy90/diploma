@@ -169,7 +169,7 @@ void TerrainRenderModule::execute(
   const etna::Sampler& terrain_sampler)
 {
   cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
-  cullTerrain(cmd_buf, cullingPipeline.getVkPipelineLayout());
+  cullTerrain(cmd_buf, cullingPipeline.getVkPipelineLayout(), packet);
 
   {
     ETNA_PROFILE_GPU(cmd_buf, renderTerrain);
@@ -178,11 +178,7 @@ void TerrainRenderModule::execute(
 
     cmd_buf.bindPipeline(vk::PipelineBindPoint::eGraphics, terrainRenderPipeline.getVkPipeline());
     renderTerrain(
-      cmd_buf,
-      terrainRenderPipeline.getVkPipelineLayout(),
-      packet,
-      terrain_map,
-      terrain_sampler);
+      cmd_buf, terrainRenderPipeline.getVkPipelineLayout(), packet, terrain_map, terrain_sampler);
   }
 }
 
@@ -206,7 +202,8 @@ void TerrainRenderModule::drawGui()
   ImGui::End();
 }
 
-void TerrainRenderModule::cullTerrain(vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout)
+void TerrainRenderModule::cullTerrain(
+  vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout, const RenderPacket& packet)
 {
   ZoneScoped;
   {
@@ -251,6 +248,10 @@ void TerrainRenderModule::cullTerrain(vk::CommandBuffer cmd_buf, vk::PipelineLay
 
   cmd_buf.bindDescriptorSets(
     vk::PipelineBindPoint::eCompute, pipeline_layout, 0, 1, &vkSet, 0, nullptr);
+
+  cmd_buf.pushConstants<glm::mat4x4>(
+    pipeline_layout, vk::ShaderStageFlagBits::eCompute, 0, {packet.projView});
+
 
   cmd_buf.dispatch(
     (static_cast<uint32_t>(terrainMgr->getInstanceMeshes().size()) + 127) / 128, 1, 1);

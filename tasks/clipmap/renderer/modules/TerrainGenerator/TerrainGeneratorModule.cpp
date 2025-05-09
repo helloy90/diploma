@@ -22,25 +22,30 @@ void TerrainGeneratorModule::allocateResources(vk::Format map_format, vk::Extent
 {
   auto& ctx = etna::get_context();
 
-  terrainMap = ctx.createImage(etna::Image::CreateInfo{
-    .extent = extent,
-    .name = "terrain_map",
-    .format = map_format,
-    .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment |
-      vk::ImageUsageFlagBits::eStorage});
+  terrainMap = ctx.createImage(
+    etna::Image::CreateInfo{
+      .extent = extent,
+      .name = "terrain_map",
+      .format = map_format,
+      .imageUsage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment |
+        vk::ImageUsageFlagBits::eStorage});
 
-  paramsBuffer = ctx.createBuffer(etna::Buffer::CreateInfo{
-    .size = sizeof(TerrainGenerationParams),
-    .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
-    .memoryUsage = VMA_MEMORY_USAGE_AUTO,
-    .allocationCreate =
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-    .name = "terrainGenerationParams"});
+  paramsBuffer = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = sizeof(TerrainGenerationParams),
+      .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+      .allocationCreate =
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+      .name = "terrainGenerationParams"});
 
   oneShotCommands = ctx.createOneShotCmdMgr();
 
   terrainSampler = etna::Sampler(
-    etna::Sampler::CreateInfo{.filter = vk::Filter::eLinear, .addressMode = vk::SamplerAddressMode::eMirroredRepeat, .name = "terrain_sampler"});
+    etna::Sampler::CreateInfo{
+      .filter = vk::Filter::eLinear,
+      .addressMode = vk::SamplerAddressMode::eMirroredRepeat,
+      .name = "terrain_sampler"});
 
   params = {
     .extent = {extent.width, extent.height},
@@ -125,7 +130,7 @@ void TerrainGeneratorModule::execute()
     etna::set_state(
       commandBuffer,
       terrainMap.get(),
-      vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
+      vk::PipelineStageFlagBits2::eVertexShader,
       vk::AccessFlagBits2::eShaderSampledRead,
       vk::ImageLayout::eShaderReadOnlyOptimal,
       vk::ImageAspectFlagBits::eColor);
