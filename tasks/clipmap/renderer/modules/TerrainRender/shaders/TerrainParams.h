@@ -6,9 +6,6 @@
 struct TerrainParams
 {
   shader_uvec2 extent;
-  shader_uvec2 chunk;
-  shader_uvec2 terrainInChunks;
-  shader_vec2 terrainOffset;
 };
 
 
