@@ -17,10 +17,11 @@
 WorldRenderer::WorldRenderer()
   : lightModule()
   , terrainGeneratorModule()
-  , terrainRenderModule({.amplifier = 40.0f, .offset = 0.6f})
+  , terrainRenderModule()
   , waterGeneratorModule()
   , waterRenderModule()
   , renderWater(false)
+  , freezeClipmap(false)
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , wireframeEnabled(false)
 {
@@ -74,10 +75,12 @@ void WorldRenderer::loadScene([[maybe_unused]] std::filesystem::path path)
 {
   terrainGeneratorModule.execute();
 
-  lightModule.displaceLights(
-    terrainRenderModule.getHeightParamsBuffer(),
-    terrainGeneratorModule.getMap(),
-    terrainGeneratorModule.getSampler());
+  lightModule.loadMaps(terrainGeneratorModule.getBindings(vk::ImageLayout::eGeneral));
+
+  lightModule.displaceLights();
+
+  terrainRenderModule.loadMaps(
+    terrainGeneratorModule.getBindings(vk::ImageLayout::eShaderReadOnlyOptimal));
 
   waterGeneratorModule.executeStart();
 }
@@ -239,11 +242,17 @@ void WorldRenderer::update(const FramePacket& packet)
 
     if (!renderWater)
     {
-      terrainRenderModule.update(renderPacket);
+      if (!freezeClipmap)
+      {
+        terrainRenderModule.update(renderPacket);
+      }
     }
     else
     {
-      waterRenderModule.update(renderPacket);
+      if (!freezeClipmap)
+      {
+        waterRenderModule.update(renderPacket);
+      }
     }
   }
 }
@@ -265,10 +274,7 @@ void WorldRenderer::drawGui()
 
   ImGui::SeparatorText("Specific Settings");
 
-  lightModule.drawGui(
-    terrainRenderModule.getHeightParamsBuffer(),
-    terrainGeneratorModule.getMap(),
-    terrainGeneratorModule.getSampler());
+  lightModule.drawGui();
   if (!renderWater)
   {
     terrainGeneratorModule.drawGui();
@@ -288,7 +294,12 @@ void WorldRenderer::drawGui()
     rebuildRenderPipelines();
   }
 
-  ImGui::Checkbox("Render Water", &renderWater);
+  if (ImGui::Checkbox("Render Water", &renderWater))
+  {
+    ETNA_CHECK_VK_RESULT(etna::get_context().getDevice().waitIdle());
+  }
+
+  ImGui::Checkbox("Freeze Clipmap", &freezeClipmap);
 
   ImGui::End();
 }
@@ -344,26 +355,26 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
     if (renderWater)
     {
       waterGeneratorModule.executeProgress(cmd_buf, renderPacket.time);
+
+      etna::set_state(
+        cmd_buf,
+        waterGeneratorModule.getHeightMap().get(),
+        vk::PipelineStageFlagBits2::eVertexShader | vk::PipelineStageFlagBits2::eFragmentShader,
+        vk::AccessFlagBits2::eShaderSampledRead,
+        vk::ImageLayout::eShaderReadOnlyOptimal,
+        vk::ImageAspectFlagBits::eColor);
+
+      etna::set_state(
+        cmd_buf,
+        waterGeneratorModule.getNormalMap().get(),
+        vk::PipelineStageFlagBits2::eFragmentShader,
+        vk::AccessFlagBits2::eShaderSampledRead,
+        vk::ImageLayout::eShaderReadOnlyOptimal,
+        vk::ImageAspectFlagBits::eColor);
     }
 
     gBuffer->prepareForRender(cmd_buf);
 
-    etna::set_state(
-      cmd_buf,
-      waterGeneratorModule.getHeightMap().get(),
-      vk::PipelineStageFlagBits2::eTessellationControlShader |
-        vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
-      vk::AccessFlagBits2::eShaderSampledRead,
-      vk::ImageLayout::eShaderReadOnlyOptimal,
-      vk::ImageAspectFlagBits::eColor);
-
-    etna::set_state(
-      cmd_buf,
-      waterGeneratorModule.getNormalMap().get(),
-      vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
-      vk::AccessFlagBits2::eShaderSampledRead,
-      vk::ImageLayout::eShaderReadOnlyOptimal,
-      vk::ImageAspectFlagBits::eColor);
 
     etna::flush_barriers(cmd_buf);
 
@@ -374,9 +385,7 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
         renderPacket,
         resolution,
         gBuffer->genColorAttachmentParams(),
-        gBuffer->genDepthAttachmentParams(),
-        terrainGeneratorModule.getMap(),
-        terrainGeneratorModule.getSampler());
+        gBuffer->genDepthAttachmentParams());
     }
     else
     {

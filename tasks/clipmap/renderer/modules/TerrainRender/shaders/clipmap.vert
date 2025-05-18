@@ -1,42 +1,40 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
-#extension GL_GOOGLE_include_directive : require
 
-#include "TerrainParams.h"
+struct TerrainInfo
+{
+  ivec2 extent;
+  float heightOffset;
+  float heightAmplifier;
+};
 
 layout(location = 0) in vec2 vPos;
 
-layout(std140, binding = 0) readonly buffer instance_matrices_t
+layout(set = 0, binding = 0) uniform sampler2D heightMaps[32];
+layout(set = 0, binding = 1) readonly buffer infos_t
+{
+  TerrainInfo infos[];
+};
+
+layout(std140, set = 1, binding = 0) readonly buffer instance_matrices_t
 {
   mat4 instanceMatrices[];
 };
 
-layout(binding = 1) readonly buffer draw_relems_instance_indices_t
+layout(set = 1, binding = 1) readonly buffer draw_relems_instance_indices_t
 {
   uint drawRelemsInstanceIndices[];
 };
 
-layout (binding = 2) uniform height_params_t {
-  float heightAmplifier;
-  float heightOffset;
-};
-
-layout(binding = 3) uniform terrain_params_t
-{
-  TerrainParams params;
-};
-
-layout(binding = 4) uniform sampler2D heightMap;
-
 layout(push_constant) uniform proj_view_t
 {
   mat4 projView;
+  uint texturesAmount;
 };
 
 layout(location = 0) out VS_OUT
 {
   vec3 wPos;
-  vec2 texCoord;
 }
 vOut;
 
@@ -52,9 +50,14 @@ void main(void)
 
   vec3 pos = (currentModelMatrix * vec4(vPos.x, 0, vPos.y, 1.0)).xyz;
 
-  vOut.texCoord = 0.5 * (pos.xz / params.extent) + 0.5;
-  float height =
-    (texture(heightMap, vOut.texCoord).x - heightOffset) * heightAmplifier;
+  float height = 0;
+
+  for (uint i = 0; i < texturesAmount; i++)
+  {
+    vec2 texCoord =  0.5 * pos.xz / infos[i].extent + 0.5;
+    height +=
+      (texture(heightMaps[i], texCoord).x - infos[i].heightOffset) * infos[i].heightAmplifier;
+  }
 
   pos.y = height;
 

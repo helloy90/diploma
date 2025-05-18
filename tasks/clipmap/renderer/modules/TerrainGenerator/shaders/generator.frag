@@ -6,15 +6,18 @@
 
 layout(location = 0) out float fragColor;
 
-layout(binding = 0) uniform params {
+layout(binding = 0) uniform params
+{
   TerrainGenerationParams genParams;
 };
 
-float interpolate(float a0, float a1, float w) {
+float interpolate(float a0, float a1, float w)
+{
   return (a1 - a0) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a0;
 }
 
-vec2 randomGradient(int ix, int iy) {
+vec2 randomGradient(int ix, int iy)
+{
   const uint w = 8 * 4;
   const uint s = w / 2;
   uint a = ix;
@@ -28,7 +31,8 @@ vec2 randomGradient(int ix, int iy) {
   return vec2(cos(random), sin(random));
 }
 
-float dotGridGradient(int ix, int iy, float x, float y) {
+float dotGridGradient(int ix, int iy, float x, float y)
+{
   vec2 gradient = randomGradient(ix, iy);
 
   float dx = x - float(ix);
@@ -37,18 +41,21 @@ float dotGridGradient(int ix, int iy, float x, float y) {
   return (dx * gradient.x + dy * gradient.y);
 }
 
-float map(float value, float fromLow, float fromHigh, float toLow, float toHigh) {
+float map(float value, float fromLow, float fromHigh, float toLow, float toHigh)
+{
   value = clamp(value, fromLow, fromHigh);
 
   return toLow + (toHigh - toLow) * ((value - fromLow) / (fromHigh - fromLow));
 }
 
-float perlin(vec2 vector, int octaves, float persistence) {
+float perlin(vec2 vector, uint octaves, float persistence)
+{
   float frequency = 1.0;
   float amplitude = 1.0;
   float total = 0.0;
 
-  for (int i = 0; i < octaves; i++) {
+  for (uint i = 0; i < octaves; i++)
+  {
     vector *= frequency;
 
     int x0 = int(floor(vector.x));
@@ -81,15 +88,21 @@ float perlin(vec2 vector, int octaves, float persistence) {
   return total * 0.5 + 0.5;
 }
 
-void main() {
+void main()
+{
   vec2 iResolution = genParams.extent;
   vec2 fragCoord = vec2(gl_FragCoord.x, iResolution.y - gl_FragCoord.y); // flipped screen y coord
 
-  float result = perlin(vec2(fragCoord / 2048), 2, genParams.persistence);
+  float result = perlin(vec2(fragCoord) / genParams.damping, genParams.octaves, genParams.persistence);
 
-  for (int i = 1; i < genParams.numberOfSamples; i++) {
-    result = mix(result, perlin(vec2(fragCoord / (2048 / (4 * i))), i, genParams.persistence), 0.5);
-  }
+  // for (int i = 1; i < genParams.octaves; i++)
+  // {
+  //   result = mix(
+  //     result,
+  //     perlin(vec2(fragCoord / (genParams.damping / (4 * i))), i, genParams.persistence),
+  //     0.5);
+  // }
 
-  fragColor = result; //mix(perlin(vec2(fragCoord / 2048), 2, 0.5), perlin(vec2(fragCoord / 512), 3, 0.5), 0.5);
+  fragColor = result; // mix(perlin(vec2(fragCoord / 2048), 2, 0.5), perlin(vec2(fragCoord / 512),
+                      // 3, 0.5), 0.5);
 }

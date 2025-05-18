@@ -7,7 +7,8 @@
 struct TerrainGenerationParams
 {
     shader_uvec2 extent;
-    shader_uint numberOfSamples;
+    shader_uint damping;
+    shader_uint octaves;
     shader_float persistence;
 };
 

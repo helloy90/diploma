@@ -57,6 +57,7 @@ private:
   WaterRenderModule waterRenderModule;
 
   bool renderWater;
+  bool freezeClipmap;
 
   vk::Format renderTargetFormat;
 
