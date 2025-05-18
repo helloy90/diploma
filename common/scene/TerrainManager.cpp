@@ -763,13 +763,13 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       auto relem = (RenderElement{
         .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 6 * (gridSize + 1)});
+        .indexCount = 6 * (gridSize)});
 #if DEBUG_FILE_WRITE
       {
         logger->info("\nVertices:");
       }
 #endif
-      for (int32_t y = vertexGridSize; y >= 0; y--)
+      for (int32_t y = vertexGridSize - 1; y >= 0; y--)
       {
         for (uint32_t x = 0; x < 2; x++)
         {
@@ -787,13 +787,13 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       }
 
       result.bounds.emplace_back(
-        Bounds{.minPos = {vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {1 + vertexOffset.x, vertexGridSize + vertexOffset.y, 0, 0}});
+        Bounds{.minPos = {vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {1 + vertexOffset.x, vertexGridSize - 1 + vertexOffset.y, 0, 0}});
 #if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
 #endif
-      for (uint32_t y = 0; y < gridSize + 1; y++)
+      for (uint32_t y = 0; y < gridSize; y++)
       {
         uint32_t currentIndices[] = {
           positionToIndex(0, y + 1, 2),
@@ -835,7 +835,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       }
 #endif
       currentOffsetAddition =
-        positionToIndex(1, gridSize + 1, 2) + 1; // because connected in the same mesh
+        positionToIndex(1, gridSize, 2) + 1; // because connected in the same mesh
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
         "Wrong index offset will be added! Maximum index for current "
@@ -851,7 +851,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       auto relem = (RenderElement{
         .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 6 * gridSize});
+        .indexCount = 6 * (gridSize - 1)});
 #if DEBUG_FILE_WRITE
       {
         logger->info("\nVertices:");
@@ -859,7 +859,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 #endif
       for (uint32_t y = 0; y < 2; y++)
       {
-        for (uint32_t x = 1; x <= vertexGridSize; x++)
+        for (uint32_t x = 1; x < vertexGridSize; x++)
         {
           auto& vertex = result.vertices.emplace_back();
           vertex.position = glm::vec2(x, y) + vertexOffset;
@@ -875,21 +875,21 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       }
 
       result.bounds.emplace_back(
-        Bounds{.minPos = {1 + vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {vertexGridSize + vertexOffset.x, vertexOffset.y, 0, 0}});
+        Bounds{.minPos = {1 + vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {vertexGridSize - 1 + vertexOffset.x, vertexOffset.y, 0, 0}});
 #if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
 #endif
-      for (uint32_t x = 0; x < gridSize; x++)
+      for (uint32_t x = 0; x < gridSize - 1; x++)
       {
         uint32_t currentIndices[] = {
-          positionToIndex(x, 0, vertexGridSize),
-          positionToIndex(x + 1, 1, vertexGridSize),
-          positionToIndex(x, 1, vertexGridSize),
-          positionToIndex(x, 0, vertexGridSize),
-          positionToIndex(x + 1, 0, vertexGridSize),
-          positionToIndex(x + 1, 1, vertexGridSize)};
+          positionToIndex(x, 0, vertexGridSize - 1),
+          positionToIndex(x + 1, 1, vertexGridSize - 1),
+          positionToIndex(x, 1, vertexGridSize - 1),
+          positionToIndex(x, 0, vertexGridSize - 1),
+          positionToIndex(x + 1, 0, vertexGridSize - 1),
+          positionToIndex(x + 1, 1, vertexGridSize - 1)};
         for (auto index : currentIndices)
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
@@ -922,7 +922,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           glm::to_string(result.bounds.back().maxPos));
       }
 #endif
-      currentOffsetAddition = positionToIndex(gridSize, 1, vertexGridSize) + 1;
+      currentOffsetAddition = positionToIndex(gridSize - 1, 1, vertexGridSize - 1) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
         "Wrong index offset will be added! Maximum index for current "
@@ -1113,7 +1113,7 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
   uint32_t scale = 1;
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    scale = 1 << level;
+    scale = 1u << level;
     for (uint32_t i = 0; i < 12; i++)
     {
       result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
@@ -1123,21 +1123,21 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    scale = 1 << level;
+    scale = 1u << level;
     result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
     result.meshes.emplace_back(fillerMesh);
   }
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    scale = 1 << level;
+    scale = 1u << level;
     result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
     result.meshes.emplace_back(trimMesh);
   }
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    scale = 1 << level;
+    scale = 1u << level;
     result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
     result.meshes.emplace_back(seamMesh);
   }
@@ -1371,7 +1371,7 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
     glm::vec2 fillerSkip = {};
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(static_cast<float>(1 << level));
+      scale = glm::vec2(static_cast<float>(1u << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
       tileExtent = glm::vec2(static_cast<float>(tileSize << level));
@@ -1423,7 +1423,7 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
   {
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(static_cast<float>(1 << level));
+      scale = glm::vec2(static_cast<float>(1u << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
       newPosition = snappedPosition;
@@ -1458,10 +1458,10 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(static_cast<float>(1 << level));
+      scale = glm::vec2(static_cast<float>(1u << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
-      nextScale = glm::vec2(static_cast<float>(1 << (level + 1)));
+      nextScale = glm::vec2(static_cast<float>(1u << (level + 1)));
       nextSnappedPosition = glm::floor(cameraHorizontalPosition / nextScale) * nextScale;
 
       tileCenter = snappedPosition + scale * glm::vec2(0.5);
@@ -1497,8 +1497,8 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(static_cast<float>(1 << level));
-      nextScale = glm::vec2(static_cast<float>(1 << (level + 1)));
+      scale = glm::vec2(static_cast<float>(1u << level));
+      nextScale = glm::vec2(static_cast<float>(1u << (level + 1)));
       nextSnappedPosition = glm::floor(cameraHorizontalPosition / nextScale) * nextScale;
 
       nextBase = nextSnappedPosition - glm::vec2(static_cast<float>((tileSize) << (level + 1)));
