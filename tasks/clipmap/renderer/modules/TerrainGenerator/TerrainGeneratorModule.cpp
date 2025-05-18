@@ -10,7 +10,6 @@
 #include <etna/GlobalContext.hpp>
 #include <etna/PipelineManager.hpp>
 #include <etna/RenderTargetStates.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 
 TerrainGeneratorModule::TerrainGeneratorModule()
@@ -59,6 +58,19 @@ void TerrainGeneratorModule::allocateResources(vk::Format map_format, vk::Extent
       .heightOffset = 0.6f,
       .heightAmplifier = 10.0f,
     });
+  }
+
+  if (texturesAmount > 1) {
+    infos[0].heightAmplifier = 30.0f;
+  }
+  if (texturesAmount > 3) {
+    infos[3].heightAmplifier = 1000.0f;
+  }
+  if (texturesAmount > 5) {
+    infos[4].heightAmplifier = 5000.0f;
+  }
+  if (texturesAmount > 7) {
+    infos[6].heightAmplifier = 1000.0f;
   }
 
   infosBuffer = ctx.createBuffer(

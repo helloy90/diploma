@@ -1004,7 +1004,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
     }
 
     result.bounds.emplace_back(
-      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexGridSize - 1, vertexGridSize - 1, 0, 0}});
+      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexGridSize, vertexGridSize, 0, 0}});
 #if DEBUG_FILE_WRITE
     {
       logger->info("Indices:");
@@ -1024,6 +1024,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 #endif
       }
     }
+    result.indices.back() = 0;
 #if DEBUG_FILE_WRITE
     {
       logger->info(
