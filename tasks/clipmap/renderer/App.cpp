@@ -7,7 +7,7 @@
 
 App::App()
 {
-  glm::uvec2 initialRes = {1280, 720};
+  glm::uvec2 initialRes = {1600, 900};
   mainWindow = windowing.createWindow(OsWindow::CreateInfo{
     .resolution = initialRes,
   });
