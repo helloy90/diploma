@@ -45,7 +45,7 @@ void TerrainGeneratorModule::allocateResources(vk::Format map_format, vk::Extent
          {.extent = {extent.width, extent.height},
           .damping = shader_uint(256u << i),
           .octaves = 3,
-          .persistence = 0.3},
+          .persistence = 0.3f},
        .paramsBuffer = ctx.createBuffer(
          etna::Buffer::CreateInfo{
            .size = sizeof(TerrainGenerationParams),
