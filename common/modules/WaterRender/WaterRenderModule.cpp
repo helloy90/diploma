@@ -92,7 +92,7 @@ void WaterRenderModule::allocateResources()
 void WaterRenderModule::loadShaders()
 {
   etna::create_program(
-    "culling_water_meshes", {WATER_RENDER_MODULE_SHADERS_ROOT "culling.comp.spv"});
+    "culling_meshes", {WATER_RENDER_MODULE_SHADERS_ROOT "culling.comp.spv"});
 
   etna::create_program(
     "water_render",
@@ -128,16 +128,6 @@ void WaterRenderModule::setupPipelines(bool wireframe_enabled, vk::Format render
                .blendEnable = vk::False,
                .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                  vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-             },
-             {
-               .blendEnable = vk::False,
-               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-             },
-             {
-               .blendEnable = vk::False,
-               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
              }},
           .logicOpEnable = false,
           .logicOp = {},
@@ -145,7 +135,7 @@ void WaterRenderModule::setupPipelines(bool wireframe_enabled, vk::Format render
       .fragmentShaderOutput =
         {
           .colorAttachmentFormats =
-            {render_target_format, vk::Format::eR8G8B8A8Snorm, vk::Format::eR8G8B8A8Unorm},
+            {render_target_format},
           .depthAttachmentFormat = vk::Format::eD32Sfloat,
         },
     });
@@ -298,7 +288,7 @@ void WaterRenderModule::cullWater(
     cmd_buf.pipelineBarrier2(dependencyInfo);
   }
 
-  auto shaderInfo = etna::get_shader_program("culling_water_meshes");
+  auto shaderInfo = etna::get_shader_program("culling_meshes");
   auto set = etna::create_descriptor_set(
     shaderInfo.getDescriptorLayoutId(0),
     cmd_buf,

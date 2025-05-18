@@ -1328,7 +1328,7 @@ void TerrainManager::loadTerrain()
 
 void TerrainManager::moveClipmap(glm::vec3 camera_position)
 {
-  ZoneScoped;
+  ZoneScopedN("moveClipmap");
   glm::vec2 cameraHorizontalPosition = glm::vec2(camera_position.x, camera_position.z);
 
   std::uint32_t meshOffset = 0;

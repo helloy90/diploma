@@ -27,7 +27,7 @@ void Renderer::initVulkan(std::span<const char*> instance_extensions)
   deviceExtensions.push_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
 
   etna::initialize(etna::InitParams{
-    .applicationName = "project_renderer",
+    .applicationName = "project_renderer_water",
     .applicationVersion = VK_MAKE_VERSION(0, 1, 0),
     .instanceExtensions = instanceExtensions,
     .deviceExtensions = deviceExtensions,
@@ -73,9 +73,9 @@ void Renderer::initFrameDelivery(vk::UniqueSurfaceKHR a_surface, ResolutionProvi
   worldRenderer->loadCubemap();
 }
 
-void Renderer::loadScene(std::filesystem::path path)
+void Renderer::loadScene()
 {
-  worldRenderer->loadScene(path);
+  worldRenderer->loadScene();
 }
 
 void Renderer::debugInput(const Keyboard& kb)
@@ -198,7 +198,7 @@ void Renderer::drawFrame()
 void Renderer::reloadShaders()
 {
   const int retval = std::system("cd " GRAPHICS_COURSE_ROOT "/build"
-                                 " && cmake --build . --target project_renderer_shaders");
+                                 " && cmake --build . --target project_renderer_water_shaders");
   if (retval != 0)
     spdlog::warn("Shader recompilation returned a non-zero return code!");
   else
