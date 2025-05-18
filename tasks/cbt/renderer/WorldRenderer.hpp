@@ -16,8 +16,6 @@
 #include "modules/Light/LightModule.hpp"
 #include "modules/TerrainGenerator/TerrainGeneratorModule.hpp"
 #include "modules/TerrainRender/TerrainRenderModule.hpp"
-#include "modules/WaterGenerator/WaterGeneratorModule.hpp"
-#include "modules/WaterRender/WaterRenderModule.hpp"
 
 #include "modules/RenderPacket.hpp"
 
@@ -53,10 +51,6 @@ private:
   LightModule lightModule;
   TerrainGeneratorModule terrainGeneratorModule;
   TerrainRenderModule terrainRenderModule;
-  WaterGeneratorModule waterGeneratorModule;
-  WaterRenderModule waterRenderModule;
-
-  bool renderWater;
 
   vk::Format renderTargetFormat;
 

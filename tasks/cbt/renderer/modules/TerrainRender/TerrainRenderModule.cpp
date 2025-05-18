@@ -62,12 +62,7 @@ void TerrainRenderModule::allocateResources()
 
 void TerrainRenderModule::loadShaders()
 {
-  etna::create_program("culling_meshes", {TERRAIN_RENDER_MODULE_SHADERS_ROOT "culling.comp.spv"});
-
-  etna::create_program(
-    "terrain_render",
-    {TERRAIN_RENDER_MODULE_SHADERS_ROOT "clipmap.vert.spv",
-     TERRAIN_RENDER_MODULE_SHADERS_ROOT "clipmap.frag.spv"});
+  
 }
 
 void TerrainRenderModule::setupPipelines(bool wireframe_enabled, vk::Format render_target_format)

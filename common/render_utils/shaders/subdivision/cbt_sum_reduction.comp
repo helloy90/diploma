@@ -1,0 +1,24 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : require
+
+#include "cbt.glsl"
+
+layout(local_size_x = 256) in;
+
+layout(push_constant) uniform push_constant_t {
+    int currentDepth;
+};
+
+void main() {
+    uint amount = (1u << currentDepth);
+    uint index = gl_GlobalInvocationID.x;
+
+    if (index < amount) {
+        uint node_index = index + amount;
+        uint left = cbtHeapRead(cbtNodeGet(node_index << 1u, currentDepth + 1));
+        uint right = cbtHeapRead(cbtNodeGet(node_index << 1u, currentDepth + 1));
+
+        _cbtHeapWrite(cbtNodeGet(node_index, currentDepth), left + right);
+    }
+}

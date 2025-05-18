@@ -9,7 +9,6 @@
 #include <etna/Profiling.hpp>
 #include <etna/RenderTargetStates.hpp>
 #include <etna/Sampler.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 #include "render_utils/Utilities.hpp"
 
@@ -18,9 +17,6 @@ WorldRenderer::WorldRenderer()
   : lightModule()
   , terrainGeneratorModule()
   , terrainRenderModule({.amplifier = 40.0f, .offset = 0.6f})
-  , waterGeneratorModule()
-  , waterRenderModule()
-  , renderWater(false)
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , wireframeEnabled(false)
 {
@@ -65,8 +61,6 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
   lightModule.allocateResources();
   terrainGeneratorModule.allocateResources();
   terrainRenderModule.allocateResources();
-  waterGeneratorModule.allocateResources();
-  waterRenderModule.allocateResources();
 }
 
 // call only after loadShaders(...)
@@ -78,8 +72,6 @@ void WorldRenderer::loadScene([[maybe_unused]] std::filesystem::path path)
     terrainRenderModule.getHeightParamsBuffer(),
     terrainGeneratorModule.getMap(),
     terrainGeneratorModule.getSampler());
-
-  waterGeneratorModule.executeStart();
 }
 
 void WorldRenderer::loadShaders()
@@ -87,8 +79,6 @@ void WorldRenderer::loadShaders()
   lightModule.loadShaders();
   terrainGeneratorModule.loadShaders();
   terrainRenderModule.loadShaders();
-  waterGeneratorModule.loadShaders();
-  waterRenderModule.loadShaders();
 
   etna::create_program(
     "deferred_shading",
@@ -101,8 +91,6 @@ void WorldRenderer::setupRenderPipelines()
   lightModule.setupPipelines();
   terrainGeneratorModule.setupPipelines();
   terrainRenderModule.setupPipelines(wireframeEnabled, renderTargetFormat);
-  waterGeneratorModule.setupPipelines();
-  waterRenderModule.setupPipelines(wireframeEnabled, renderTargetFormat);
 
   auto& pipelineManager = etna::get_context().getPipelineManager();
 
@@ -260,16 +248,9 @@ void WorldRenderer::drawGui()
     terrainRenderModule.getHeightParamsBuffer(),
     terrainGeneratorModule.getMap(),
     terrainGeneratorModule.getSampler());
-  if (!renderWater)
-  {
-    terrainGeneratorModule.drawGui();
-    terrainRenderModule.drawGui();
-  }
-  else
-  {
-    waterGeneratorModule.drawGui();
-    waterRenderModule.drawGui();
-  }
+
+  terrainGeneratorModule.drawGui();
+  terrainRenderModule.drawGui();
 
   ImGui::SeparatorText("General Settings");
 
@@ -278,8 +259,6 @@ void WorldRenderer::drawGui()
   {
     rebuildRenderPipelines();
   }
-
-  ImGui::Checkbox("Render Water", &renderWater);
 
   ImGui::End();
 }
@@ -332,57 +311,18 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
     std::memcpy(currentConstants.data(), &params, sizeof(UniformParams));
     currentConstants.unmap();
 
-    if (renderWater)
-    {
-      waterGeneratorModule.executeProgress(cmd_buf, renderPacket.time);
-    }
-
     gBuffer->prepareForRender(cmd_buf);
-
-    etna::set_state(
-      cmd_buf,
-      waterGeneratorModule.getHeightMap().get(),
-      vk::PipelineStageFlagBits2::eTessellationControlShader |
-        vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
-      vk::AccessFlagBits2::eShaderSampledRead,
-      vk::ImageLayout::eShaderReadOnlyOptimal,
-      vk::ImageAspectFlagBits::eColor);
-
-    etna::set_state(
-      cmd_buf,
-      waterGeneratorModule.getNormalMap().get(),
-      vk::PipelineStageFlagBits2::eTessellationEvaluationShader,
-      vk::AccessFlagBits2::eShaderSampledRead,
-      vk::ImageLayout::eShaderReadOnlyOptimal,
-      vk::ImageAspectFlagBits::eColor);
 
     etna::flush_barriers(cmd_buf);
 
-    if (!renderWater)
-    {
-      terrainRenderModule.execute(
-        cmd_buf,
-        renderPacket,
-        resolution,
-        gBuffer->genColorAttachmentParams(),
-        gBuffer->genDepthAttachmentParams(),
-        terrainGeneratorModule.getMap(),
-        terrainGeneratorModule.getSampler());
-    }
-    else
-    {
-      waterRenderModule.execute(
-        cmd_buf,
-        renderPacket,
-        resolution,
-        gBuffer->genColorAttachmentParams(),
-        gBuffer->genDepthAttachmentParams(),
-        waterGeneratorModule.getHeightMap(),
-        waterGeneratorModule.getNormalMap(),
-        waterGeneratorModule.getSampler(),
-        lightModule.getDirectionalLightsBuffer(),
-        cubemapTexture);
-    }
+    terrainRenderModule.execute(
+      cmd_buf,
+      renderPacket,
+      resolution,
+      gBuffer->genColorAttachmentParams(),
+      gBuffer->genDepthAttachmentParams(),
+      terrainGeneratorModule.getMap(),
+      terrainGeneratorModule.getSampler());
 
     etna::set_state(
       cmd_buf,

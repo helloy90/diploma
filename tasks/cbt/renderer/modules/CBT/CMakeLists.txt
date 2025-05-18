@@ -9,7 +9,10 @@ target_shader_include_directories(cbt_module INTERFACE shaders)
 
 target_link_libraries(cbt_module PUBLIC etna render_utils gui)
 
-
 target_add_shaders(cbt_module
-    shaders/leb.vert
+    shaders/decoy.vert
+    shaders/subdivision_split.tesc
+    shaders/subdivision_merge.tesc
+    shaders/process.tese
+    shaders/terrain.frag
 )
