@@ -91,8 +91,7 @@ void WaterRenderModule::allocateResources()
 
 void WaterRenderModule::loadShaders()
 {
-  etna::create_program(
-    "culling_meshes", {WATER_RENDER_MODULE_SHADERS_ROOT "culling.comp.spv"});
+  etna::create_program("culling_meshes", {WATER_RENDER_MODULE_SHADERS_ROOT "culling.comp.spv"});
 
   etna::create_program(
     "water_render",
@@ -123,19 +122,17 @@ void WaterRenderModule::setupPipelines(bool wireframe_enabled, vk::Format render
         },
       .blendingConfig =
         {
-          .attachments =
-            {{
-               .blendEnable = vk::False,
-               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-             }},
+          .attachments = {{
+            .blendEnable = vk::False,
+            .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+              vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+          }},
           .logicOpEnable = false,
           .logicOp = {},
         },
       .fragmentShaderOutput =
         {
-          .colorAttachmentFormats =
-            {render_target_format},
+          .colorAttachmentFormats = {render_target_format},
           .depthAttachmentFormat = vk::Format::eD32Sfloat,
         },
     });
@@ -160,8 +157,11 @@ void WaterRenderModule::execute(
   const etna::Buffer& directional_lights_buffer,
   const etna::Image& cubemap)
 {
-  cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
-  cullWater(cmd_buf, cullingPipeline.getVkPipelineLayout(), packet);
+  {
+    ETNA_PROFILE_GPU(cmd_buf, cullWaterMeshes);
+    cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
+    cullWater(cmd_buf, cullingPipeline.getVkPipelineLayout(), packet);
+  }
 
   {
     ETNA_PROFILE_GPU(cmd_buf, renderWater);
