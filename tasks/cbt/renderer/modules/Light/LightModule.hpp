@@ -19,15 +19,11 @@ public:
   void setupPipelines();
 
   void loadLights();
-  void displaceLights(
-    const etna::Buffer& height_params_buffer,
-    const etna::Image& terrain_map,
-    const etna::Sampler& terrain_sampler);
+  void displaceLights();
 
-  void drawGui(
-    const etna::Buffer& height_params_buffer,
-    const etna::Image& terrain_map,
-    const etna::Sampler& terrain_sampler);
+  void drawGui();
+
+  void loadMaps(std::vector<etna::Binding> terrain_bindings);
 
   const etna::Buffer& getLightParamsBuffer() const { return paramsBuffer; }
   const etna::Buffer& getPointLightsBuffer() const { return lightsBuffer; }
@@ -47,4 +43,7 @@ private:
 
   std::unique_ptr<etna::OneShotCmdMgr> oneShotCommands;
   std::unique_ptr<etna::BlockingTransferHelper> transferHelper;
+
+  std::unique_ptr<etna::PersistentDescriptorSet> terrainSet;
+  uint32_t texturesAmount;
 };

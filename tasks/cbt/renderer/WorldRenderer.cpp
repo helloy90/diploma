@@ -16,7 +16,7 @@
 WorldRenderer::WorldRenderer()
   : lightModule()
   , terrainGeneratorModule()
-  , terrainRenderModule({.amplifier = 40.0f, .offset = 0.6f})
+  , terrainRenderModule()
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , wireframeEnabled(false)
 {
@@ -64,14 +64,16 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 }
 
 // call only after loadShaders(...)
-void WorldRenderer::loadScene([[maybe_unused]] std::filesystem::path path)
+void WorldRenderer::loadScene()
 {
   terrainGeneratorModule.execute();
 
-  lightModule.displaceLights(
-    terrainRenderModule.getHeightParamsBuffer(),
-    terrainGeneratorModule.getMap(),
-    terrainGeneratorModule.getSampler());
+  terrainRenderModule.loadMaps(
+    terrainGeneratorModule.getBindings(vk::ImageLayout::eShaderReadOnlyOptimal));
+
+  lightModule.loadMaps(terrainGeneratorModule.getBindings(vk::ImageLayout::eGeneral));
+
+  lightModule.displaceLights();
 }
 
 void WorldRenderer::loadShaders()
@@ -222,8 +224,12 @@ void WorldRenderer::update(const FramePacket& packet)
     // params.cameraWorldPosition.y, params.cameraWorldPosition.z);
     renderPacket = {
       .projView = params.projView,
+      .view = params.view,
+      .proj = params.proj,
       .cameraWorldPosition = params.cameraWorldPosition,
       .time = packet.currentTime};
+
+    terrainRenderModule.update(renderPacket, packet.mainCam.fov, static_cast<float>(resolution.y));
   }
 }
 
@@ -244,10 +250,7 @@ void WorldRenderer::drawGui()
 
   ImGui::SeparatorText("Specific Settings");
 
-  lightModule.drawGui(
-    terrainRenderModule.getHeightParamsBuffer(),
-    terrainGeneratorModule.getMap(),
-    terrainGeneratorModule.getSampler());
+  lightModule.drawGui();
 
   terrainGeneratorModule.drawGui();
   terrainRenderModule.drawGui();
@@ -317,12 +320,9 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
 
     terrainRenderModule.execute(
       cmd_buf,
-      renderPacket,
       resolution,
       gBuffer->genColorAttachmentParams(),
-      gBuffer->genDepthAttachmentParams(),
-      terrainGeneratorModule.getMap(),
-      terrainGeneratorModule.getSampler());
+      gBuffer->genDepthAttachmentParams());
 
     etna::set_state(
       cmd_buf,

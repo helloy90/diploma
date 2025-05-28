@@ -1,58 +1,70 @@
 #pragma once
 
-#include <glm/glm.hpp>
-
 #include <etna/ComputePipeline.hpp>
 #include <etna/GraphicsPipeline.hpp>
 #include <etna/RenderTargetStates.hpp>
 #include <etna/Buffer.hpp>
 #include <etna/Sampler.hpp>
+#include <etna/DescriptorSet.hpp>
+#include <etna/OneShotCmdMgr.hpp>
 
-#include "shaders/TerrainParams.h"
 #include "../RenderPacket.hpp"
-#include "../HeightParams.hpp"
+#include "CBT/CBTree.hpp"
+#include "shaders/SubdivisionParams.h"
 
 
 class TerrainRenderModule
 {
 public:
   TerrainRenderModule();
-  explicit TerrainRenderModule(TerrainParams par);
-  explicit TerrainRenderModule(HeightParams par);
 
   void allocateResources();
   void loadShaders();
   void setupPipelines(bool wireframe_enabled, vk::Format render_target_format);
+  void loadMaps(std::vector<etna::Binding> terrain_bindings);
 
-  void update(const RenderPacket& packet);
+  void update(const RenderPacket& packet, float camera_fovy, float window_height);
 
   void execute(
     vk::CommandBuffer cmd_buf,
-    const RenderPacket& packet,
     glm::uvec2 extent,
     std::vector<etna::RenderTargetState::AttachmentParams> color_attachment_params,
-    etna::RenderTargetState::AttachmentParams depth_attachment_params,
-    const etna::Image& terrain_map,
-    const etna::Sampler& terrain_sampler);
+    etna::RenderTargetState::AttachmentParams depth_attachment_params);
 
   void drawGui();
 
-  const etna::Buffer& getHeightParamsBuffer() const { return heightParamsBuffer; }
+private:
+  void splitTerrain(vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout);
+  void mergeTerrain(vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout);
+
+  float getLodFactor(float camera_fovy, float window_height);
+
+  void updateParams();
 
 private:
-  void renderTerrain(
-    vk::CommandBuffer cmd_buf,
-    vk::PipelineLayout pipeline_layout,
-    const RenderPacket& packet,
-    const etna::Image& terrain_map,
-    const etna::Sampler& terrain_sampler);
+  struct SubdivisionDisplayParams
+  {
+    float pixelsPerEdge;
+    std::uint32_t subdivision;
+    float displacementVariance;
+    float resolution;
+    float verticalScale;
+  };
 
 private:
-  TerrainParams terrainParams;
-  HeightParams heightParams;
+  std::unique_ptr<CBTree> cbt;
 
-  etna::Buffer terrainParamsBuffer;
-  etna::Buffer heightParamsBuffer;
+  SubdivisionParams params;
+  SubdivisionDisplayParams displayParams;
+  etna::Buffer paramsBuffer;
 
-  etna::GraphicsPipeline terrainRenderPipeline;
+  etna::GraphicsPipeline subdivisionSplitPipeline;
+  etna::GraphicsPipeline subdivisionMergePipeline;
+
+  std::unique_ptr<etna::PersistentDescriptorSet> terrainSplitSet;
+  std::unique_ptr<etna::PersistentDescriptorSet> terrainMergeSet;
+
+  bool merge;
+
+  std::unique_ptr<etna::OneShotCmdMgr> oneShotCommands;
 };

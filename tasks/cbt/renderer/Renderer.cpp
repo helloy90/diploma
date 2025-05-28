@@ -36,6 +36,7 @@ void Renderer::initVulkan(std::span<const char*> instance_extensions)
          {.tessellationShader = vk::True,
           .multiDrawIndirect = vk::True,
           .fillModeNonSolid = vk::True /*debug*/,
+          .vertexPipelineStoresAndAtomics = vk::True,
           .fragmentStoresAndAtomics = vk::True}},
     .descriptorIndexingFeatures =
       {.shaderSampledImageArrayNonUniformIndexing = vk::True, .runtimeDescriptorArray = vk::True},
@@ -73,9 +74,9 @@ void Renderer::initFrameDelivery(vk::UniqueSurfaceKHR a_surface, ResolutionProvi
   worldRenderer->loadCubemap();
 }
 
-void Renderer::loadScene(std::filesystem::path path)
+void Renderer::loadScene()
 {
-  worldRenderer->loadScene(path);
+  worldRenderer->loadScene();
 }
 
 void Renderer::debugInput(const Keyboard& kb)

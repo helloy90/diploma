@@ -1,83 +1,83 @@
 #include "TerrainRenderModule.hpp"
 
-#include <glm/fwd.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <tracy/Tracy.hpp>
 
 #include <imgui.h>
 
+#include <etna/GlobalContext.hpp>
 #include <etna/Etna.hpp>
 #include <etna/PipelineManager.hpp>
 #include <etna/Profiling.hpp>
 
-#include "../HeightParams.hpp"
-#include "shaders/TerrainParams.h"
+#include "shaders/SubdivisionParams.h"
 
 
 TerrainRenderModule::TerrainRenderModule()
-  : terrainParams({.extent = shader_uvec2(64)})
-  , heightParams({.amplifier = shader_float(200.0f), .offset = shader_float(0.6f)})
-{
-}
-
-TerrainRenderModule::TerrainRenderModule(TerrainParams par)
-  : terrainParams(par)
-  , heightParams({.amplifier = shader_float(200.0f), .offset = shader_float(0.6f)})
-{
-}
-
-TerrainRenderModule::TerrainRenderModule(HeightParams par)
-  : terrainParams({.extent = shader_uvec2(64)})
-  , heightParams(par)
+  : cbt(std::make_unique<CBTree>(25))
+  , displayParams(
+      {.pixelsPerEdge = 15.0f,
+       .subdivision = 3,
+       .displacementVariance = 0.01f,
+       .resolution = 65536.0f,
+       .verticalScale = 1000.0f})
+  , merge(false)
 {
 }
 
 void TerrainRenderModule::allocateResources()
 {
-  terrainParamsBuffer = etna::get_context().createBuffer(
+  paramsBuffer = etna::get_context().createBuffer(
     etna::Buffer::CreateInfo{
-      .size = sizeof(TerrainParams),
+      .size = sizeof(SubdivisionParams),
       .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
       .memoryUsage = VMA_MEMORY_USAGE_AUTO,
       .allocationCreate =
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-      .name = "terrainParams"});
+      .name = "subdivisionParams"});
 
-  heightParamsBuffer = etna::get_context().createBuffer(
-    etna::Buffer::CreateInfo{
-      .size = sizeof(HeightParams),
-      .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
-      .memoryUsage = VMA_MEMORY_USAGE_AUTO,
-      .allocationCreate =
-        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-      .name = "terrainHeightParams"});
+  oneShotCommands = etna::get_context().createOneShotCmdMgr();
 
-  terrainParamsBuffer.map();
-  std::memcpy(terrainParamsBuffer.data(), &terrainParams, sizeof(TerrainParams));
-  terrainParamsBuffer.unmap();
-
-  heightParamsBuffer.map();
-  std::memcpy(heightParamsBuffer.data(), &heightParams, sizeof(HeightParams));
-  heightParamsBuffer.unmap();
+  cbt->allocateResources();
 }
 
 void TerrainRenderModule::loadShaders()
 {
-  
+  etna::create_program(
+    "subdivision_split",
+    {
+      TERRAIN_RENDER_MODULE_SHADERS_ROOT "decoy.vert.spv",
+      TERRAIN_RENDER_MODULE_SHADERS_ROOT "subdivision_split.tesc.spv",
+      TERRAIN_RENDER_MODULE_SHADERS_ROOT "process.tese.spv",
+      TERRAIN_RENDER_MODULE_SHADERS_ROOT "terrain.frag.spv",
+    });
+
+  etna::create_program(
+    "subdivision_merge",
+    {
+      TERRAIN_RENDER_MODULE_SHADERS_ROOT "decoy.vert.spv",
+      TERRAIN_RENDER_MODULE_SHADERS_ROOT "subdivision_merge.tesc.spv",
+      TERRAIN_RENDER_MODULE_SHADERS_ROOT "process.tese.spv",
+      TERRAIN_RENDER_MODULE_SHADERS_ROOT "terrain.frag.spv",
+    });
+
+  cbt->loadShaders();
 }
 
 void TerrainRenderModule::setupPipelines(bool wireframe_enabled, vk::Format render_target_format)
 {
   auto& pipelineManager = etna::get_context().getPipelineManager();
 
-  terrainRenderPipeline = pipelineManager.createGraphicsPipeline(
-    "terrain_render",
+  subdivisionSplitPipeline = pipelineManager.createGraphicsPipeline(
+    "subdivision_split",
     etna::GraphicsPipeline::CreateInfo{
       .inputAssemblyConfig = {.topology = vk::PrimitiveTopology::ePatchList},
+      .tessellationConfig = {.patchControlPoints = 1},
       .rasterizationConfig =
         vk::PipelineRasterizationStateCreateInfo{
           .polygonMode = (wireframe_enabled ? vk::PolygonMode::eLine : vk::PolygonMode::eFill),
           .cullMode = vk::CullModeFlagBits::eBack,
-          .frontFace = vk::FrontFace::eClockwise,
+          .frontFace = vk::FrontFace::eCounterClockwise,
           .lineWidth = 1.f,
         },
       .blendingConfig =
@@ -108,25 +108,193 @@ void TerrainRenderModule::setupPipelines(bool wireframe_enabled, vk::Format rend
           .depthAttachmentFormat = vk::Format::eD32Sfloat,
         },
     });
+
+  subdivisionMergePipeline = pipelineManager.createGraphicsPipeline(
+    "subdivision_merge",
+    etna::GraphicsPipeline::CreateInfo{
+      .inputAssemblyConfig = {.topology = vk::PrimitiveTopology::ePatchList},
+      .tessellationConfig = {.patchControlPoints = 1},
+      .rasterizationConfig =
+        vk::PipelineRasterizationStateCreateInfo{
+          .polygonMode = (wireframe_enabled ? vk::PolygonMode::eLine : vk::PolygonMode::eFill),
+          .cullMode = vk::CullModeFlagBits::eBack,
+          .frontFace = vk::FrontFace::eCounterClockwise,
+          .lineWidth = 1.f,
+        },
+      .blendingConfig =
+        {
+          .attachments =
+            {{
+               .blendEnable = vk::False,
+               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+             },
+             {
+               .blendEnable = vk::False,
+               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+             },
+             {
+               .blendEnable = vk::False,
+               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+             }},
+          .logicOpEnable = false,
+          .logicOp = {},
+        },
+      .fragmentShaderOutput =
+        {
+          .colorAttachmentFormats =
+            {render_target_format, vk::Format::eR8G8B8A8Snorm, vk::Format::eR8G8B8A8Unorm},
+          .depthAttachmentFormat = vk::Format::eD32Sfloat,
+        },
+    });
+
+  cbt->setupPipelines();
+}
+
+void TerrainRenderModule::loadMaps(std::vector<etna::Binding> terrain_bindings)
+{
+  auto splitShaderInfo = etna::get_shader_program("subdivision_split");
+  terrainSplitSet =
+    std::make_unique<etna::PersistentDescriptorSet>(etna::create_persistent_descriptor_set(
+      splitShaderInfo.getDescriptorLayoutId(1), terrain_bindings, true));
+  auto mergeShaderInfo = etna::get_shader_program("subdivision_merge");
+  terrainMergeSet =
+    std::make_unique<etna::PersistentDescriptorSet>(etna::create_persistent_descriptor_set(
+      mergeShaderInfo.getDescriptorLayoutId(1), terrain_bindings, true));
+
+  auto commandBuffer = oneShotCommands->start();
+  ETNA_CHECK_VK_RESULT(commandBuffer.begin(vk::CommandBufferBeginInfo{}));
+  {
+    terrainSplitSet->processBarriers(commandBuffer);
+    terrainMergeSet->processBarriers(commandBuffer);
+  }
+  ETNA_CHECK_VK_RESULT(commandBuffer.end());
+  oneShotCommands->submitAndWait(commandBuffer);
+
+  params.texturesAmount = static_cast<uint32_t>(terrain_bindings.size() - 1);
+
+  cbt->load();
+}
+
+void TerrainRenderModule::update(const RenderPacket& packet, float camera_fovy, float window_height)
+{
+  params.world = glm::scale(
+    glm::translate(
+      glm::identity<glm::mat4>(),
+      glm::vec3(-displayParams.resolution / 2.0f, 0.0f, -displayParams.resolution / 2.0f)),
+    glm::vec3(displayParams.resolution, displayParams.verticalScale, displayParams.resolution));
+
+  params.view = packet.view;
+  params.proj = packet.proj;
+  params.worldView = params.view * params.world;
+  params.worldProjView = params.proj * params.worldView;
+
+  params.lodFactor = getLodFactor(camera_fovy, window_height);
+
+  params.varianceFactor =
+    (displayParams.displacementVariance / 64.0f) * (displayParams.displacementVariance / 64.0f);
+  params.tesselationFactor = 1u << displayParams.subdivision;
+
+  paramsBuffer.map();
+  std::memcpy(paramsBuffer.data(), &params, sizeof(SubdivisionParams));
+  paramsBuffer.unmap();
 }
 
 void TerrainRenderModule::execute(
   vk::CommandBuffer cmd_buf,
-  const RenderPacket& packet,
   glm::uvec2 extent,
   std::vector<etna::RenderTargetState::AttachmentParams> color_attachment_params,
-  etna::RenderTargetState::AttachmentParams depth_attachment_params,
-  const etna::Image& terrain_map,
-  const etna::Sampler& terrain_sampler)
+  etna::RenderTargetState::AttachmentParams depth_attachment_params)
 {
   {
-    ETNA_PROFILE_GPU(cmd_buf, renderTerrain);
+    std::array bufferBarriers = {vk::BufferMemoryBarrier2{
+      .srcStageMask = vk::PipelineStageFlagBits2::eDrawIndirect,
+      .srcAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
+      .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+      .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+      .buffer = cbt->getDrawIndirectBuffer().get(),
+      .size = vk::WholeSize}};
+
+    vk::DependencyInfo dependencyInfo = {
+      .dependencyFlags = vk::DependencyFlagBits::eByRegion,
+      .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
+      .pBufferMemoryBarriers = bufferBarriers.data()};
+
+    cmd_buf.pipelineBarrier2(dependencyInfo);
+  }
+
+  cbt->prepareIndirect(cmd_buf);
+
+  {
+    std::array bufferBarriers = {
+      vk::BufferMemoryBarrier2{
+        .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+        .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+        .dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect,
+        .dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
+        .buffer = cbt->getDrawIndirectBuffer().get(),
+        .size = vk::WholeSize},
+      vk::BufferMemoryBarrier2{
+        .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+        .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+        .dstStageMask = vk::PipelineStageFlagBits2::eTessellationControlShader,
+        .dstAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+        .buffer = cbt->getCBTBuffer().get(),
+        .size = vk::WholeSize}};
+
+    vk::DependencyInfo dependencyInfo = {
+      .dependencyFlags = vk::DependencyFlagBits::eByRegion,
+      .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
+      .pBufferMemoryBarriers = bufferBarriers.data()};
+
+    cmd_buf.pipelineBarrier2(dependencyInfo);
+  }
+
+  if (!merge)
+  {
+    ETNA_PROFILE_GPU(cmd_buf, renderSplitTerrain);
     etna::RenderTargetState renderTargets(
       cmd_buf, {{0, 0}, {extent.x, extent.y}}, color_attachment_params, depth_attachment_params);
 
-    cmd_buf.bindPipeline(vk::PipelineBindPoint::eGraphics, terrainRenderPipeline.getVkPipeline());
-    renderTerrain(
-      cmd_buf, terrainRenderPipeline.getVkPipelineLayout(), packet, terrain_map, terrain_sampler);
+    cmd_buf.bindPipeline(
+      vk::PipelineBindPoint::eGraphics, subdivisionSplitPipeline.getVkPipeline());
+    splitTerrain(cmd_buf, subdivisionSplitPipeline.getVkPipelineLayout());
+  }
+  else
+  {
+    ETNA_PROFILE_GPU(cmd_buf, renderMergeTerrain);
+    etna::RenderTargetState renderTargets(
+      cmd_buf, {{0, 0}, {extent.x, extent.y}}, color_attachment_params, depth_attachment_params);
+
+    cmd_buf.bindPipeline(
+      vk::PipelineBindPoint::eGraphics, subdivisionMergePipeline.getVkPipeline());
+    mergeTerrain(cmd_buf, subdivisionMergePipeline.getVkPipelineLayout());
+  }
+
+  merge = !merge;
+
+  {
+    std::array bufferBarriers = {vk::BufferMemoryBarrier2{
+      .srcStageMask = vk::PipelineStageFlagBits2::eTessellationControlShader,
+      .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+      .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+      .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+      .buffer = cbt->getCBTBuffer().get(),
+      .size = vk::WholeSize}};
+
+    vk::DependencyInfo dependencyInfo = {
+      .dependencyFlags = vk::DependencyFlagBits::eByRegion,
+      .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
+      .pBufferMemoryBarriers = bufferBarriers.data()};
+
+    cmd_buf.pipelineBarrier2(dependencyInfo);
+  }
+
+  {
+    ETNA_PROFILE_GPU(cmd_buf, reductCBT);
+    cbt->reduct(cmd_buf);
   }
 }
 
@@ -136,48 +304,73 @@ void TerrainRenderModule::drawGui()
 
   if (ImGui::CollapsingHeader("Terrain Render"))
   {
-    ImGui::SeparatorText("Height Adjustment");
-    ImGui::SliderFloat("Height Amplifier", &heightParams.amplifier, 0, 10000, "%.3f");
-    ImGui::SliderFloat("Height Offset", &heightParams.offset, -1.0f, 1.0f, "%.5f");
-    if (ImGui::Button("Apply"))
-    {
-      heightParamsBuffer.map();
-      std::memcpy(heightParamsBuffer.data(), &heightParams, sizeof(HeightParams));
-      heightParamsBuffer.unmap();
-    }
-  }
+    ImGui::SeparatorText("Subdivision Params");
 
+    float pixelsPerEdge = displayParams.pixelsPerEdge;
+    ImGui::DragFloat("Pixels Per Edge", &pixelsPerEdge, 0.01f, 0.5f, 64.0f);
+    int subdivision = static_cast<int>(displayParams.subdivision);
+    ImGui::DragInt("Subdivision Scale", &subdivision, 1.0f, 1, 10);
+    float displacementVariance = displayParams.displacementVariance;
+    ImGui::DragFloat("Displacement Variance", &displacementVariance, 0.01f, 0.0f, 64.0f);
+
+    ImGui::SeparatorText("Terrain Map Params");
+    float resolution = displayParams.resolution;
+    ImGui::DragFloat("Resolution", &resolution, 10.0f, 1.0f, 131072.0f);
+    float verticalScale = displayParams.verticalScale;
+    ImGui::DragFloat("Vertical Scale", &verticalScale, 1.0f, 1.0f, 2048.0f);
+
+    displayParams = {
+      .pixelsPerEdge = pixelsPerEdge,
+      .subdivision = static_cast<std::uint32_t>(subdivision),
+      .displacementVariance = displacementVariance,
+      .resolution = resolution,
+      .verticalScale = verticalScale};
+  }
   ImGui::End();
 }
 
-
-void TerrainRenderModule::renderTerrain(
-  vk::CommandBuffer cmd_buf,
-  vk::PipelineLayout pipeline_layout,
-  const RenderPacket& packet,
-  const etna::Image& terrain_map,
-  const etna::Sampler& terrain_sampler)
+void TerrainRenderModule::splitTerrain(
+  vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout)
 {
-
-  auto shaderInfo = etna::get_shader_program("terrain_render");
+  auto shaderInfo = etna::get_shader_program("subdivision_split");
   auto set = etna::create_descriptor_set(
     shaderInfo.getDescriptorLayoutId(0),
     cmd_buf,
-    {
-      // TODO BINDINGS
-      etna::Binding{2, heightParamsBuffer.genBinding()},
-      etna::Binding{3, terrainParamsBuffer.genBinding()},
-      etna::Binding{
-        4, terrain_map.genBinding(terrain_sampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
-    });
+    {etna::Binding{0, cbt->getCBTBuffer().genBinding()},
+     etna::Binding{1, paramsBuffer.genBinding()}});
 
   auto vkSet = set.getVkSet();
 
   cmd_buf.bindDescriptorSets(
-    vk::PipelineBindPoint::eGraphics, pipeline_layout, 0, 1, &vkSet, 0, nullptr);
+    vk::PipelineBindPoint::eGraphics, pipeline_layout, 0, {vkSet, terrainSplitSet->getVkSet()}, {});
 
-  cmd_buf.pushConstants<glm::mat4x4>(
-    pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, {packet.projView});
-
-  // TODO DRAW COMMAND
+  cmd_buf.drawIndirect(cbt->getDrawIndirectBuffer().get(), 0, 1, 0);
 }
+
+void TerrainRenderModule::mergeTerrain(
+  vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout)
+{
+  auto shaderInfo = etna::get_shader_program("subdivision_merge");
+  auto set = etna::create_descriptor_set(
+    shaderInfo.getDescriptorLayoutId(0),
+    cmd_buf,
+    {etna::Binding{0, cbt->getCBTBuffer().genBinding()},
+     etna::Binding{1, paramsBuffer.genBinding()}});
+  auto vkSet = set.getVkSet();
+
+  cmd_buf.bindDescriptorSets(
+    vk::PipelineBindPoint::eGraphics, pipeline_layout, 0, {vkSet, terrainMergeSet->getVkSet()}, {});
+
+  cmd_buf.drawIndirect(cbt->getDrawIndirectBuffer().get(), 0, 1, 0);
+}
+
+float TerrainRenderModule::getLodFactor(float camera_fovy, float window_height)
+{
+  float targetSize = 2.0f * glm::tan(glm::radians(camera_fovy) / 2.0f) *
+    static_cast<float>(1 << displayParams.subdivision) * displayParams.pixelsPerEdge /
+    window_height;
+
+  return -2.0f * glm::log2(targetSize) + 2.0f;
+}
+
+void TerrainRenderModule::updateParams() {}

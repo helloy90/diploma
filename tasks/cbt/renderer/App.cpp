@@ -7,7 +7,7 @@
 
 App::App()
 {
-  glm::uvec2 initialRes = {1280, 720};
+  glm::uvec2 initialRes = {1600, 900};
   mainWindow = windowing.createWindow(OsWindow::CreateInfo{
     .resolution = initialRes,
   });
@@ -23,10 +23,9 @@ App::App()
 
   mainCam.lookAt({0, 20, 0}, {10, 0, 10}, {0, 1, 0});
 
-  // note - maybe bad (see shadowmap)
   ImGuiRenderer::enableImGuiForWindow(mainWindow->native());
 
-  renderer->loadScene(GRAPHICS_COURSE_RESOURCES_ROOT "/scenes/Avocado/Avocado_baked.gltf");
+  renderer->loadScene();
 }
 
 void App::run()
@@ -56,7 +55,7 @@ void App::processInput(float dt)
     mainWindow->askToClose();
 
   if (is_held_down(mainWindow->keyboard[KeyboardKey::kLeftShift]))
-    camMoveSpeed = 10;
+    camMoveSpeed = 50;
   else
     camMoveSpeed = 2;
 

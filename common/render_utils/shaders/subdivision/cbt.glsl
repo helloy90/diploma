@@ -213,7 +213,7 @@ CBTNode cbtNodeGetRightChild(CBTNode node)
 uint _cbtNodeBitIndex(CBTNode node)
 {
   uint bitsAmount = uint(cbtMaxDepth() + 1 - node.depth);
-  uint level = 2 << (node.depth + 1);
+  uint level = 2u << node.depth;
   return level + node.index * bitsAmount;
 }
 

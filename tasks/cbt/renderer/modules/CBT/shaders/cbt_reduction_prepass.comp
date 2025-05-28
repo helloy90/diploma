@@ -1,0 +1,65 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : require
+
+#include "subdivision/cbt.glsl"
+
+layout(local_size_x = 256) in;
+
+layout(push_constant) uniform push_constant_t
+{
+  int currentDepth;
+};
+
+const uint twoBitMask = 0x55555555u;
+const uint threeBitMask = 0x33333333u;
+const uint fourBitMask = 0x0F0F0F0Fu;
+const uint fiveBitMask = 0x00FF00FFu;
+const uint sixBitMask = 0x0000FFFFu;
+
+void main()
+{
+  uint amount = (1u << currentDepth);
+  uint index = gl_GlobalInvocationID.x << 5;
+
+  if (index < amount)
+  {
+    uint nodeIndex = index + amount;
+    uint firstIndex = _cbtNodeBitIndex(cbtNodeGet(nodeIndex, currentDepth));
+    uint bitField = cbt.heap[firstIndex >> 5u];
+    uint bitData = 0u;
+
+    // 2 bits
+    bitField = (bitField & twoBitMask) + ((bitField >> 1u) & twoBitMask);
+    bitData = bitField;
+    cbt.heap[(firstIndex - amount) >> 5u] = bitData;
+
+    // 3 bits
+    bitField = (bitField & threeBitMask) + ((bitField >> 2u) & threeBitMask);
+    bitData = ((bitField >> 0u) & (7u << 0u)) | ((bitField >> 1u) & (7u << 3u)) |
+      ((bitField >> 2u) & (7u << 6u)) | ((bitField >> 3u) & (7u << 9u)) |
+      ((bitField >> 4u) & (7u << 12u)) | ((bitField >> 5u) & (7u << 15u)) |
+      ((bitField >> 6u) & (7u << 18u)) | ((bitField >> 7u) & (7u << 21u));
+
+    _cbtHeapWriteDirect(cbtNodeGet(nodeIndex >> 2u, currentDepth - 2), 24, bitData);
+
+    // 4 bits
+    bitField = (bitField & fourBitMask) + ((bitField >> 4u) & fourBitMask);
+    bitData = ((bitField >> 0u) & (15u << 0u)) | ((bitField >> 4u) & (15u << 4u)) |
+      ((bitField >> 8u) & (15u << 8u)) | ((bitField >> 12u) & (15u << 12u));
+
+    _cbtHeapWriteDirect(cbtNodeGet(nodeIndex >> 3u, currentDepth - 3), 16, bitData);
+
+    // 5 bits
+    bitField = (bitField & fiveBitMask) + ((bitField >> 8u) & fiveBitMask);
+    bitData = ((bitField >> 0u) & (31u << 0u)) | ((bitField >> 11u) & (31u << 5u));
+
+    _cbtHeapWriteDirect(cbtNodeGet(nodeIndex >> 4u, currentDepth - 4), 10, bitData);
+
+    // 6 bits
+    bitField = (bitField & sixBitMask) + ((bitField >> 16u) & sixBitMask);
+    bitData = bitField;
+
+    _cbtHeapWriteDirect(cbtNodeGet(nodeIndex >> 5u, currentDepth - 5), 6, bitData);
+  }
+}

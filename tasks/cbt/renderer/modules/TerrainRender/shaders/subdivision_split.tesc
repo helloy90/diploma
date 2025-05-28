@@ -4,6 +4,14 @@
 
 #include "/subdivision/cbt.glsl"
 #include "/subdivision/leb.glsl"
+#include "SubdivisionParams.h"
+
+struct TerrainInfo
+{
+  ivec2 extent;
+  float heightOffset;
+  float heightAmplifier;
+};
 
 layout(vertices = 1) out;
 
@@ -13,47 +21,84 @@ layout(location = 0) out triangleData
 }
 data[];
 
-layout(set = 1, binding = 0) uniform sampler2D heightMap;
-
-layout(push_constant) uniform push_constant_t
+layout(set = 0, binding = 1) uniform params_t
 {
-  mat4 view;
-  float lodFactor;
-  uint tesselationFactor;
+  SubdivisionParams params;
 };
+
+layout(set = 1, binding = 0) uniform sampler2D heightMaps[32];
+layout(set = 1, binding = 1) readonly buffer infos_t
+{
+  TerrainInfo infos[];
+};
+
 
 vec4[3] decodeTriangleVertices(CBTNode node)
 {
   vec3 xPos = vec3(0, 0, 1);
-  vec3 yPos = vec3(1, 0, 0);
-  mat2x3 pos = lebSquareNodeDecodeAttribute(node, mat2x3(xPos, yPos));
+  vec3 zPos = vec3(1, 0, 0);
+  mat2x3 pos = lebSquareNodeDecodeAttribute(node, mat2x3(xPos, zPos));
   vec4 first = vec4(pos[0][0], 0.0, pos[1][0], 1.0);
-  vec4 second = vec4(pos[0][0], 0.0, pos[1][0], 1.0);
-  vec4 third = vec4(pos[0][0], 0.0, pos[1][0], 1.0);
+  vec4 second = vec4(pos[0][1], 0.0, pos[1][1], 1.0);
+  vec4 third = vec4(pos[0][2], 0.0, pos[1][2], 1.0);
 
-  first.y = texture(heightMap, first.xz).x;
-  second.y = texture(heightMap, second.xz).x;
-  third.y = texture(heightMap, third.xz).x;
+  for (uint i = 0; i < params.texturesAmount; i++)
+  {
+    first.y +=
+      (texture(heightMaps[i], first.xz).x - infos[i].heightOffset) * infos[i].heightAmplifier;
+    second.y +=
+      (texture(heightMaps[i], second.xz).x - infos[i].heightOffset) * infos[i].heightAmplifier;
+    third.y +=
+      (texture(heightMaps[i], third.xz).x - infos[i].heightOffset) * infos[i].heightAmplifier;
+  }
 
   return vec4[3](first, second, third);
 }
 
 float triangleLOD(vec4[3] triangle_vertices)
 {
-  vec3 first = (view * triangle_vertices[0]).xyz;
-  vec3 third = (view * triangle_vertices[2]).xyz;
+  vec3 first = (params.worldView * triangle_vertices[0]).xyz;
+  vec3 third = (params.worldView * triangle_vertices[1]).xyz;
 
-  vec3 edgeCenter = first + third;
-  vec3 edgeVector = third - first;
+  float squaredLengthSum = dot(first, first) + dot(third, third);
+  float bumpToSquare = 2.0 * dot(first, third);
 
-  float distanceToEdgeSqr = dot(edgeCenter, edgeCenter);
-  float edgeLengthSqr = dot(edgeVector, edgeVector);
+  float distanceToEdgeSqr = squaredLengthSum + bumpToSquare;
+  float edgeLengthSqr = squaredLengthSum - bumpToSquare;
 
-  return lodFactor + log2(edgeLengthSqr / distanceToEdgeSqr);
+  return params.lodFactor +  log2(edgeLengthSqr / distanceToEdgeSqr);
+}
+
+bool displacementVariance(vec4[3] triangle_vertices)
+{
+  vec2 first = triangle_vertices[0].xz;
+  vec2 second = triangle_vertices[1].xz;
+  vec2 third = triangle_vertices[2].xz;
+
+  vec2 middle = (first + second + third) / 3;
+
+  vec2 dx = (first - second);
+  vec2 dz = (third - second);
+
+  float variance = 0.0;
+
+  for (uint i = 0; i < params.texturesAmount; i++)
+  {
+     vec2 displacement = (textureGrad(heightMaps[i], middle, dx, dz).xy - infos[i].heightOffset) *
+      infos[i].heightAmplifier;
+      variance += clamp(displacement.y - displacement.x * displacement.x, 0.0, 1.0);
+  }
+
+  return (variance >= params.varianceFactor);
 }
 
 vec2 levelOfDetail(vec4[3] triangle_vertices)
 {
+  if (!displacementVariance(triangle_vertices))
+  {
+    return vec2(0.0, 1.0);
+  }
+
   return vec2(triangleLOD(triangle_vertices), 1.0);
 }
 
@@ -69,15 +114,15 @@ void main()
     lebSquareNodeSplit(node);
   }
 
-  if (targetLOD.y > 0.0)
+  if (true)
   {
     data[gl_InvocationID].texCoord =
       vec2[3](triangleVertices[0].xz, triangleVertices[1].xz, triangleVertices[2].xz);
 
-    gl_TessLevelInner[0] = tesselationFactor;
-    gl_TessLevelOuter[0] = tesselationFactor;
-    gl_TessLevelOuter[1] = tesselationFactor;
-    gl_TessLevelOuter[2] = tesselationFactor;
+    gl_TessLevelInner[0] = 
+    gl_TessLevelOuter[0] = 
+    gl_TessLevelOuter[1] = 
+    gl_TessLevelOuter[2] = params.tesselationFactor;
   }
   else
   {

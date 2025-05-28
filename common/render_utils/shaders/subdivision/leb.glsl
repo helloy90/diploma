@@ -216,9 +216,6 @@ mat3x3 _lebDecodeTransformationMatrix(CBTNode node)
 
 mat3x3 _lebSquareDecodeTransformationMatrix(CBTNode node)
 {
-  // int bitIndex = max(0, node.depth - 1);
-
-  // mat3x3 transform = _lebGetSquareMatrix(_lebGetBit(node.index, bitIndex));
   uint isSecondTriangle = _lebGetBit(node.index, max(0, node.depth - 1));
 
   mat3x3 transform = _lebGetSquareMatrix(isSecondTriangle);
@@ -233,35 +230,43 @@ mat3x3 _lebSquareDecodeTransformationMatrix(CBTNode node)
 }
 
 
-vec3 lebNodeDecodeAttribute(CBTNode node, vec3 data) {
+vec3 lebNodeDecodeAttribute(CBTNode node, vec3 data)
+{
   return _lebDecodeTransformationMatrix(node) * data;
 }
 
-mat2x3 lebNodeDecodeAttribute(CBTNode node, mat2x3 data) {
+mat2x3 lebNodeDecodeAttribute(CBTNode node, mat2x3 data)
+{
   return _lebDecodeTransformationMatrix(node) * data;
 }
 
-mat3x3 lebNodeDecodeAttribute(CBTNode node, mat3x3 data) {
+mat3x3 lebNodeDecodeAttribute(CBTNode node, mat3x3 data)
+{
   return _lebDecodeTransformationMatrix(node) * data;
 }
 
-mat4x3 lebNodeDecodeAttribute(CBTNode node, mat4x3 data) {
+mat4x3 lebNodeDecodeAttribute(CBTNode node, mat4x3 data)
+{
   return _lebDecodeTransformationMatrix(node) * data;
 }
 
-vec3 lebSquareNodeDecodeAttribute(CBTNode node, vec3 data) {
+vec3 lebSquareNodeDecodeAttribute(CBTNode node, vec3 data)
+{
   return _lebSquareDecodeTransformationMatrix(node) * data;
 }
 
-mat2x3 lebSquareNodeDecodeAttribute(CBTNode node, mat2x3 data) {
+mat2x3 lebSquareNodeDecodeAttribute(CBTNode node, mat2x3 data)
+{
   return _lebSquareDecodeTransformationMatrix(node) * data;
 }
 
-mat3x3 lebSquareNodeDecodeAttribute(CBTNode node, mat3x3 data) {
+mat3x3 lebSquareNodeDecodeAttribute(CBTNode node, mat3x3 data)
+{
   return _lebSquareDecodeTransformationMatrix(node) * data;
 }
 
-mat4x3 lebSquareNodeDecodeAttribute(CBTNode node, mat4x3 data) {
+mat4x3 lebSquareNodeDecodeAttribute(CBTNode node, mat4x3 data)
+{
   return _lebSquareDecodeTransformationMatrix(node) * data;
 }
 

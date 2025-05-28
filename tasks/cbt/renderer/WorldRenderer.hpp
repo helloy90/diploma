@@ -30,7 +30,7 @@ class WorldRenderer
 public:
   WorldRenderer();
 
-  void loadScene(std::filesystem::path path);
+  void loadScene();
   void allocateResources(glm::uvec2 swapchain_resolution);
   void loadShaders();
   void setupRenderPipelines();

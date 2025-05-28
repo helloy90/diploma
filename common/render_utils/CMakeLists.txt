@@ -14,6 +14,4 @@ target_link_libraries(render_utils PUBLIC etna glm::glm tinygltf)
 target_add_shaders(render_utils
   shaders/quad.vert
   shaders/quad.frag
-  shaders/subdivision/cbt_dispatch.comp
-  shaders/subdivision/cbt_sum_reduction.comp
 )
