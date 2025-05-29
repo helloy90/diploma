@@ -5,7 +5,6 @@
 
 #include <etna/PipelineManager.hpp>
 #include <span>
-#include <vulkan/vulkan_enums.hpp>
 
 
 LightModule::LightModule()

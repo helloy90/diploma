@@ -7,10 +7,10 @@
 #include <etna/GraphicsPipeline.hpp>
 #include <etna/ComputePipeline.hpp>
 #include <etna/OneShotCmdMgr.hpp>
-#include <vector>
 
-#include "etna/BlockingTransferHelper.hpp"
-#include "etna/DescriptorSet.hpp"
+#include <etna/BlockingTransferHelper.hpp>
+#include <etna/DescriptorSet.hpp>
+
 #include "shaders/TerrainGenerationParams.h"
 
 
@@ -48,14 +48,11 @@ struct TerrainCascadeInfo {
 };
 
 private:
-  // etna::Image terrainMap;
 
   std::vector<TerrainCascade> cascades;
 
   etna::Sampler terrainSampler;
 
-  // TerrainGenerationParams params;
-  // etna::Buffer paramsBuffer;
   std::vector<TerrainCascadeInfo> infos;
   etna::Buffer infosBuffer;
 

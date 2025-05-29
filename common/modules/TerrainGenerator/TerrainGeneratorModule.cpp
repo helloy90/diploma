@@ -1,9 +1,5 @@
 #include "TerrainGeneratorModule.hpp"
-#include "cpp_glsl_compat.h"
-#include "etna/Image.hpp"
 
-#include <cstdint>
-#include <fmt/format.h>
 #include <imgui.h>
 
 #include <etna/Etna.hpp>
@@ -44,7 +40,7 @@ void TerrainGeneratorModule::allocateResources(vk::Format map_format, vk::Extent
          {.extent = {extent.width, extent.height},
           .damping = shader_uint(256u << i),
           .octaves = 3,
-          .persistence = 0.3f},
+          .persistence = 0.3},
        .paramsBuffer = ctx.createBuffer(
          etna::Buffer::CreateInfo{
            .size = sizeof(TerrainGenerationParams),
@@ -256,7 +252,6 @@ void TerrainGeneratorModule::drawGui()
 
   ImGui::End();
 }
-
 
 std::vector<etna::Binding> TerrainGeneratorModule::getBindings(vk::ImageLayout layout) const
 {
