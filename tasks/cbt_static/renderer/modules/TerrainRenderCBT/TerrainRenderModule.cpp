@@ -20,8 +20,7 @@ TerrainRenderModule::TerrainRenderModule()
       {.pixelsPerEdge = 15.0f,
        .subdivision = 3,
        .displacementVariance = 0.01f,
-       .resolution = 65536.0f,
-       .verticalScale = 1000.0f})
+       .resolution = 65536.0f})
   , merge(false)
 {
 }
@@ -47,19 +46,19 @@ void TerrainRenderModule::loadShaders()
   etna::create_program(
     "subdivision_split",
     {
-      TERRAIN_RENDER_MODULE_SHADERS_ROOT "decoy.vert.spv",
-      TERRAIN_RENDER_MODULE_SHADERS_ROOT "subdivision_split.tesc.spv",
-      TERRAIN_RENDER_MODULE_SHADERS_ROOT "process.tese.spv",
-      TERRAIN_RENDER_MODULE_SHADERS_ROOT "terrain.frag.spv",
+      TERRAIN_RENDER_CBT_MODULE_SHADERS_ROOT "decoy.vert.spv",
+      TERRAIN_RENDER_CBT_MODULE_SHADERS_ROOT "subdivision_split.tesc.spv",
+      TERRAIN_RENDER_CBT_MODULE_SHADERS_ROOT "process.tese.spv",
+      TERRAIN_RENDER_CBT_MODULE_SHADERS_ROOT "terrain.frag.spv",
     });
 
   etna::create_program(
     "subdivision_merge",
     {
-      TERRAIN_RENDER_MODULE_SHADERS_ROOT "decoy.vert.spv",
-      TERRAIN_RENDER_MODULE_SHADERS_ROOT "subdivision_merge.tesc.spv",
-      TERRAIN_RENDER_MODULE_SHADERS_ROOT "process.tese.spv",
-      TERRAIN_RENDER_MODULE_SHADERS_ROOT "terrain.frag.spv",
+      TERRAIN_RENDER_CBT_MODULE_SHADERS_ROOT "decoy.vert.spv",
+      TERRAIN_RENDER_CBT_MODULE_SHADERS_ROOT "subdivision_merge.tesc.spv",
+      TERRAIN_RENDER_CBT_MODULE_SHADERS_ROOT "process.tese.spv",
+      TERRAIN_RENDER_CBT_MODULE_SHADERS_ROOT "terrain.frag.spv",
     });
 
   cbt->loadShaders();
@@ -185,7 +184,7 @@ void TerrainRenderModule::update(const RenderPacket& packet, float camera_fovy, 
     glm::translate(
       glm::identity<glm::mat4>(),
       glm::vec3(-displayParams.resolution / 2.0f, 0.0f, -displayParams.resolution / 2.0f)),
-    glm::vec3(displayParams.resolution, displayParams.verticalScale, displayParams.resolution));
+    glm::vec3(displayParams.resolution, 0, displayParams.resolution));
 
   params.view = packet.view;
   params.proj = packet.proj;
@@ -340,15 +339,12 @@ void TerrainRenderModule::drawGui()
     ImGui::SeparatorText("Terrain Map Params");
     float resolution = displayParams.resolution;
     ImGui::DragFloat("Resolution", &resolution, 10.0f, 1.0f, 131072.0f);
-    float verticalScale = displayParams.verticalScale;
-    ImGui::DragFloat("Vertical Scale", &verticalScale, 1.0f, 1.0f, 2048.0f);
 
     displayParams = {
       .pixelsPerEdge = pixelsPerEdge,
       .subdivision = static_cast<std::uint32_t>(subdivision),
       .displacementVariance = displacementVariance,
-      .resolution = resolution,
-      .verticalScale = verticalScale};
+      .resolution = resolution};
   }
   ImGui::End();
 }

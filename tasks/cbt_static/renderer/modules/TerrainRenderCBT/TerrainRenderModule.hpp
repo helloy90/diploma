@@ -48,7 +48,6 @@ private:
     std::uint32_t subdivision;
     float displacementVariance;
     float resolution;
-    float verticalScale;
   };
 
 private:
