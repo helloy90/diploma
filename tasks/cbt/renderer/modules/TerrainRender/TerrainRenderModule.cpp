@@ -1,6 +1,7 @@
 #include "TerrainRenderModule.hpp"
 
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/quaternion_geometric.hpp>
 #include <tracy/Tracy.hpp>
 
 #include <imgui.h>
@@ -188,8 +189,31 @@ void TerrainRenderModule::update(const RenderPacket& packet, float camera_fovy, 
 
   params.view = packet.view;
   params.proj = packet.proj;
+  params.projView = params.proj * params.view;
   params.worldView = params.view * params.world;
   params.worldProjView = params.proj * params.worldView;
+
+
+  for (int i = 0; i < 3; i++)
+  {
+    for (int j = 0; j < 2; j++)
+    {
+      params.frustumPlanes[i * 2 + j].x =
+        params.worldProjView[0][3] + (params.worldProjView[0][i] * (j == 0 ? 1 : -1));
+      params.frustumPlanes[i * 2 + j].y =
+        params.worldProjView[1][3] + (params.worldProjView[1][i] * (j == 0 ? 1 : -1));
+      params.frustumPlanes[i * 2 + j].z =
+        params.worldProjView[2][3] + (params.worldProjView[2][i] * (j == 0 ? 1 : -1));
+      params.frustumPlanes[i * 2 + j].w =
+        params.worldProjView[3][3] + (params.worldProjView[3][i] * (j == 0 ? 1 : -1));
+
+      params.frustumPlanes[i * 2 + j] *= glm::length(
+        glm::vec3(
+          params.frustumPlanes[i * 2 + j].x,
+          params.frustumPlanes[i * 2 + j].y,
+          params.frustumPlanes[i * 2 + j].z));
+    }
+  }
 
   params.lodFactor = getLodFactor(camera_fovy, window_height);
 

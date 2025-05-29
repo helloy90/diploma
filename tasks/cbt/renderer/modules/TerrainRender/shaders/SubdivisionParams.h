@@ -9,8 +9,11 @@ struct SubdivisionParams
   shader_mat4 world;
   shader_mat4 view;
   shader_mat4 proj;
+  shader_mat4 projView;
   shader_mat4 worldView;
   shader_mat4 worldProjView;
+
+  shader_vec4 frustumPlanes[6];
 
   shader_float lodFactor;
   shader_float varianceFactor;

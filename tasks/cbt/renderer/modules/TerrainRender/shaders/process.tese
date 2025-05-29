@@ -45,8 +45,6 @@ vec2 interpolate(vec2 tex_coords[3], vec3 factor)
 {
   return tex_coords[1] + factor.x * (tex_coords[2] - tex_coords[1]) +
     factor.y * (tex_coords[0] - tex_coords[1]);
-
-    // return vec2(factor.x) * tex_coords[0] + vec2(factor.y) * tex_coords[1] + vec2(factor.z) * tex_coords[2];
 }
 
 Attributes tesselateTriangle(vec2 tex_coords[3], vec3 factor)
@@ -57,7 +55,7 @@ Attributes tesselateTriangle(vec2 tex_coords[3], vec3 factor)
   for (uint i = 0; i < params.texturesAmount; i++)
   {
     position.y +=
-      (texture(heightMaps[i], texCoord).x - infos[i].heightOffset) * infos[i].heightAmplifier;
+      (texture(heightMaps[i], 0.5 * (texCoord / infos[i].extent) + 0.5).x - infos[i].heightOffset) * infos[i].heightAmplifier;
   }
 
   return Attributes(position, texCoord);
@@ -67,8 +65,8 @@ void main()
 {
   Attributes attributes = tesselateTriangle(data[0].texCoords, gl_TessCoord.xyz);
 
-  pos = params.world * attributes.position;
+  pos = attributes.position;
   texCoord = attributes.texCoord;
 
-  gl_Position = params.worldProjView * attributes.position;
+  gl_Position = params.projView * attributes.position;
 }
