@@ -32,6 +32,7 @@ layout(set = 1, binding = 1) readonly buffer infos_t
   TerrainInfo infos[];
 };
 
+
 vec4[3] decodeTriangleVertices(CBTNode node)
 {
   vec3 xPos = vec3(0, 0, 1);
@@ -106,8 +107,8 @@ bool isVisible(vec4[3] triangle_vertices)
 
 //   for (uint i = 0; i < params.texturesAmount; i++)
 //   {
-//     vec2 displacement = textureGrad(heightMaps[i], middle, dx, dz).xz;
-//     variance += clamp(displacement.y - displacement.x * displacement.x, 0.0, 1.0);
+//      vec2 displacement = textureGrad(heightMaps[i], middle, dx, dz).xz;
+//       variance += clamp(displacement.y - displacement.x * displacement.x, 0.0, 1.0);
 //   }
 
 //   return (variance >= params.varianceFactor);
@@ -115,10 +116,10 @@ bool isVisible(vec4[3] triangle_vertices)
 
 vec2 levelOfDetail(vec4[3] triangle_vertices)
 {
-  if (!isVisible(triangle_vertices))
-  {
-    return vec2(0.0, 0.0);
-  }
+  // if (!isVisible(triangle_vertices))
+  // {
+  //   return vec2(0.0, 0.0);
+  // }
 
   // if (!displacementVariance(triangle_vertices))
   // {
@@ -135,13 +136,9 @@ void main()
 
   vec2 targetLOD = levelOfDetail(triangleVertices);
 
-  LEBDiamondParent diamond = lebSquareDiamondParentDecode(node);
-  bool shouldMergeBottom = (levelOfDetail(decodeTriangleVertices(diamond.bottom)).x < 1.0);
-  bool shouldMergeTop = (levelOfDetail(decodeTriangleVertices(diamond.top)).x < 1.0);
-
-  if (shouldMergeBottom && shouldMergeTop)
+  if (targetLOD.x > 1.0)
   {
-    lebSquareNodeMerge(node, diamond);
+    lebSquareNodeSplit(node);
   }
 
   if (true)

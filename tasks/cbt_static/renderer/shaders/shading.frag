@@ -3,8 +3,8 @@
 #extension GL_GOOGLE_include_directive : require
 
 #include "UniformParams.h"
-#include "../modules/Light/Light.h"
-#include "../modules/Light/DirectionalLight.h"
+#include "../Light.h"
+#include "../DirectionalLight.h"
 
 layout(location = 0) out vec4 fragColor;
 

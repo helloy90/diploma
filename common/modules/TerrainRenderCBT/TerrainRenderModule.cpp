@@ -180,6 +180,8 @@ void TerrainRenderModule::loadMaps(std::vector<etna::Binding> terrain_bindings)
 
 void TerrainRenderModule::update(const RenderPacket& packet, float camera_fovy, float window_height)
 {
+  ZoneScoped;
+
   params.world = glm::scale(
     glm::translate(
       glm::identity<glm::mat4>(),

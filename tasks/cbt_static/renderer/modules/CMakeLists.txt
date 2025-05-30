@@ -1,4 +1,0 @@
-add_subdirectory(CBT)
-add_subdirectory(Light)
-add_subdirectory(TerrainGenerator)
-add_subdirectory(TerrainRenderCBT)

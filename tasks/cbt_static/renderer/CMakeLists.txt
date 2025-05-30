@@ -1,5 +1,5 @@
 
-add_executable(project_renderer
+add_executable(project_renderer_cbt
   main.cpp
   App.cpp
   Renderer.cpp
@@ -7,14 +7,12 @@ add_executable(project_renderer
   GBuffer.cpp
 )
 
-add_subdirectory(modules)
-
-target_link_libraries(project_renderer
+target_link_libraries(project_renderer_cbt
   PRIVATE glfw etna glm::glm wsi gui scene render_utils 
   lights_module terrain_generator_module terrain_render_cbt_module 
 )
 
-target_add_shaders(project_renderer
+target_add_shaders(project_renderer_cbt
   shaders/decoy.vert
   shaders/shading.frag
 )
