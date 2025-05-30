@@ -23,11 +23,14 @@ layout(binding = 2) uniform terrain_params_t
 
 layout(binding = 4) uniform sampler2D heightMap;
 
-layout(push_constant) uniform proj_view_t
+layout(push_constant) uniform push_constant_t
 {
   mat4 projView;
+  mat4 view;
+  mat4 proj;
   vec4 cameraWorldPosition;
 };
+
 
 layout(location = 0) out VS_OUT
 {

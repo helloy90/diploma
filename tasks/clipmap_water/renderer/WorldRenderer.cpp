@@ -212,6 +212,8 @@ void WorldRenderer::update(const FramePacket& packet)
     // params.cameraWorldPosition.y, params.cameraWorldPosition.z);
     renderPacket = {
       .projView = params.projView,
+      .view = params.view,
+      .proj = params.proj,
       .cameraWorldPosition = params.cameraWorldPosition,
       .time = packet.currentTime};
 

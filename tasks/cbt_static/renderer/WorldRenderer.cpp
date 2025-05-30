@@ -17,7 +17,6 @@ WorldRenderer::WorldRenderer()
   : lightModule()
   , terrainGeneratorModule()
   , terrainRenderModule()
-  , freezeClipmap(false)
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
   , wireframeEnabled(false)
 {
@@ -69,12 +68,12 @@ void WorldRenderer::loadScene()
 {
   terrainGeneratorModule.execute();
 
+  terrainRenderModule.loadMaps(
+    terrainGeneratorModule.getBindings(vk::ImageLayout::eShaderReadOnlyOptimal));
+
   lightModule.loadMaps(terrainGeneratorModule.getBindings(vk::ImageLayout::eGeneral));
 
   lightModule.displaceLights();
-
-  terrainRenderModule.loadMaps(
-    terrainGeneratorModule.getBindings(vk::ImageLayout::eShaderReadOnlyOptimal));
 }
 
 void WorldRenderer::loadShaders()
@@ -85,8 +84,8 @@ void WorldRenderer::loadShaders()
 
   etna::create_program(
     "deferred_shading",
-    {PROJECT_RENDERER_STATIC_SHADERS_ROOT "decoy.vert.spv",
-     PROJECT_RENDERER_STATIC_SHADERS_ROOT "shading.frag.spv"});
+    {PROJECT_RENDERER_CBT_SHADERS_ROOT "decoy.vert.spv",
+     PROJECT_RENDERER_CBT_SHADERS_ROOT "shading.frag.spv"});
 }
 
 void WorldRenderer::setupRenderPipelines()
@@ -230,10 +229,7 @@ void WorldRenderer::update(const FramePacket& packet)
       .cameraWorldPosition = params.cameraWorldPosition,
       .time = packet.currentTime};
 
-    if (!freezeClipmap)
-    {
-      terrainRenderModule.update(renderPacket);
-    }
+    terrainRenderModule.update(renderPacket, packet.mainCam.fov, static_cast<float>(resolution.y));
   }
 }
 
@@ -266,8 +262,6 @@ void WorldRenderer::drawGui()
   {
     rebuildRenderPipelines();
   }
-
-  ImGui::Checkbox("Freeze Clipmap", &freezeClipmap);
 
   ImGui::End();
 }
@@ -319,13 +313,13 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
     currentConstants.map();
     std::memcpy(currentConstants.data(), &params, sizeof(UniformParams));
     currentConstants.unmap();
+
     gBuffer->prepareForRender(cmd_buf);
 
     etna::flush_barriers(cmd_buf);
 
     terrainRenderModule.execute(
       cmd_buf,
-      renderPacket,
       resolution,
       gBuffer->genColorAttachmentParams(),
       gBuffer->genDepthAttachmentParams());

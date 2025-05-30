@@ -2,16 +2,23 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : require
 
+#include "WaterParams.h"
 #include "WaterRenderParams.h"
 
 
 layout(location = 0) in VS_OUT
 {
-  vec3 pos;
+  vec4 pos;
   vec2 texCoord;
-};
+}
+surf;
 
 layout(location = 0) out vec4 fragColor;
+
+layout(binding = 2) uniform terrain_params_t
+{
+  WaterParams waterParams;
+};
 
 layout(binding = 3) uniform render_params_t
 {
@@ -99,10 +106,10 @@ void main()
 
   const vec3 pointToLight = -normalize(sunDirection);
 
-  const vec3 fromPosToCamera = normalize(cameraWorldPosition.xyz - pos);  // V
-  const vec3 fromPosToLight = normalize(pointToLight);                    // L
-  const vec3 surfaceNormal = normalize(texture(normalMap, texCoord).rgb); // N
-  const vec3 halfVector = normalize(fromPosToLight + fromPosToCamera);    // H
+  const vec3 fromPosToCamera = normalize(cameraWorldPosition.xyz - surf.pos.xyz);  // V
+  const vec3 fromPosToLight = normalize(pointToLight);                         // L
+  const vec3 surfaceNormal = normalize(texture(normalMap, surf.texCoord).rgb); // N
+  const vec3 halfVector = normalize(fromPosToLight + fromPosToCamera);         // H
 
   const float VdotH = clampedDot(fromPosToCamera, halfVector);
   const float HdotL = clampedDot(halfVector, fromPosToLight);
@@ -121,7 +128,7 @@ void main()
 
   vec3 specular = sunIrradiance * NdotL * BRDFSpecular_GGX(alphaRoughness, NdotL, NdotV, NdotH);
 
-  vec4 displacementAndFoam = texture(heightMap, texCoord);
+  vec4 displacementAndFoam = texture(heightMap, surf.texCoord);
   float height = max(0.0, displacementAndFoam.y);
 
   // fake subsurface scattering

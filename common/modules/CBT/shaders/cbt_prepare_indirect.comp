@@ -1,0 +1,23 @@
+#version 460
+#extension GL_GOOGLE_include_directive : require
+
+#include "subdivision/cbt.glsl"
+
+struct VkDrawIndirectCommand {
+    uint vertexCount;
+    uint instanceCount;
+    uint firstVertex;
+    uint firstInstance;
+};
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, set = 0, binding = 1) buffer draw_indirect_t
+{
+  VkDrawIndirectCommand cbtDrawIndirectBuffer;
+};
+
+void main()
+{
+  cbtDrawIndirectBuffer.vertexCount = cbtNodeCount();
+}
