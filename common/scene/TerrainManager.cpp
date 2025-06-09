@@ -20,7 +20,7 @@
 
 #define DEBUG_FILE_WRITE 0
 
-#ifdef DEBUG_FILE_WRITE
+#if DEBUG_FILE_WRITE
 
 static auto logger = spdlog::basic_logger_mt("file_logger", "logs.txt");
 
@@ -82,10 +82,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
         .indexCount = (tileSize * 2 + 1) * 6});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
-        logger->info("Vertices:");
+        logger->info("\nVertices:");
       }
+#endif
 
       for (uint32_t y = 0; y < 2; y++)
       {
@@ -96,13 +97,14 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           auto& vertex = result.vertices.emplace_back();
           vertex.position = {x, y};
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info(
               "\tvertex {}, position - {}",
               result.vertices.size() - 1,
               glm::to_string(vertex.position));
           }
+#endif
         }
       }
 
@@ -111,11 +113,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           .minPos = {-static_cast<int32_t>(tileSize), 0, 0, 0},
           .maxPos = {static_cast<int32_t>(vertexTileSize), 1, 0, 0}});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
-
+#endif
       for (uint32_t x = 0; x < tileSize * 2 + 1; x++)
       {
         uint32_t currentIndices[] = {
@@ -130,14 +132,15 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Cross mesh, horizonal segment - Index count - {} for relem with vertex offset {}, index "
@@ -147,17 +150,17 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           relem.vertexOffset,
           relem.indexOffset);
       }
-
+#endif
       result.relems.emplace_back(relem);
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Bounds of this relem - min: {}, max: {}",
           glm::to_string(result.bounds.back().minPos),
           glm::to_string(result.bounds.back().maxPos));
       }
-
+#endif
       currentOffsetAddition = positionToIndex(tileSize * 2 + 1, 1, 2 * vertexTileSize) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
@@ -176,11 +179,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
         .indexCount = (tileSize * 2 + 1) * 6});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
-        logger->info("Vertices:");
+        logger->info("\nVertices:");
       }
-
+#endif
       for (int32_t y = -static_cast<int32_t>(tileSize);
            y < static_cast<int32_t>(vertexTileSize + 1);
            y++)
@@ -190,13 +193,14 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           auto& vertex = result.vertices.emplace_back();
           vertex.position = {x, y};
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info(
               "\tvertex {}, position - {}",
               result.vertices.size() - 1,
               glm::to_string(vertex.position));
           }
+#endif
         }
       }
 
@@ -205,11 +209,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           .minPos = {0, -static_cast<int32_t>(tileSize), 0, 0},
           .maxPos = {1, static_cast<int32_t>(vertexTileSize), 0, 0}});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
-
+#endif
       for (uint32_t y = 0; y < tileSize * 2 + 1; y++)
       {
         uint32_t currentIndices[] = {
@@ -224,14 +228,15 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Cross mesh, vertical segment - Index count - {} for relem with vertex offset {}, index "
@@ -241,17 +246,17 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           relem.vertexOffset,
           relem.indexOffset);
       }
-
+#endif
       result.relems.emplace_back(relem);
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Bounds of this relem - min: {}, max: {}",
           glm::to_string(result.bounds.back().minPos),
           glm::to_string(result.bounds.back().maxPos));
       }
-
+#endif
       currentOffsetAddition = positionToIndex(1, tileSize * 2 + 1, 2) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
@@ -276,11 +281,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
       .indexCount = tileSize * tileSize * 6});
 
-    if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
     {
-      logger->info("Vertices:");
+      logger->info("\nVertices:");
     }
-
+#endif
     for (uint32_t y = 0; y < vertexTileSize; y++)
     {
       for (uint32_t x = 0; x < vertexTileSize; x++)
@@ -288,13 +293,14 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         auto& vertex = result.vertices.emplace_back();
         vertex.position = {x, y};
 
-        if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
         {
           logger->info(
             "\tvertex {}, position - {}",
             result.vertices.size() - 1,
             glm::to_string(vertex.position));
         }
+#endif
       }
     }
 
@@ -318,15 +324,16 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
     }
 
-    if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
     {
       logger->info(
         "Square mesh - Index count - {} for relem with vertex offset {}, index offset {}",
@@ -334,17 +341,17 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         relem.vertexOffset,
         relem.indexOffset);
     }
-
+#endif
     result.relems.emplace_back(relem);
 
-    if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
     {
       logger->info(
         "Bounds of this relem - min: {}, max: {}",
         glm::to_string(result.bounds.back().minPos),
         glm::to_string(result.bounds.back().maxPos));
     }
-
+#endif
     currentOffsetAddition = positionToIndex(tileSize, tileSize, vertexTileSize) + 1;
     ETNA_VERIFYF(
       currentOffsetAddition == currentMaxIndex + 1,
@@ -377,11 +384,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
         .indexCount = tileSize * 6});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
-        logger->info("Vertices:");
+        logger->info("\nVertices:");
       }
-
+#endif
       for (uint32_t y = 0; y < 2; y++)
       {
         for (uint32_t x = 0; x < vertexTileSize; x++)
@@ -389,24 +396,25 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           auto& vertex = result.vertices.emplace_back();
           vertex.position = {offset + x + 1, y};
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info(
               "\tvertex {}, position - {}",
               result.vertices.size() - 1,
               glm::to_string(vertex.position));
           }
+#endif
         }
       }
 
       result.bounds.emplace_back(
         Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexTileSize - 1, 1, 0, 0}});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
-
+#endif
       for (uint32_t x = 0; x < tileSize; x++)
       {
         uint32_t currentIndices[] = {
@@ -421,14 +429,15 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Filler mesh, right arm - Index count - {} for relem with vertex offset {}, index offset "
@@ -437,17 +446,17 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           relem.vertexOffset,
           relem.indexOffset);
       }
-
+#endif
       result.relems.emplace_back(relem);
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Bounds of this relem - min: {}, max: {}",
           glm::to_string(result.bounds.back().minPos),
           glm::to_string(result.bounds.back().maxPos));
       }
-
+#endif
       currentOffsetAddition = positionToIndex(tileSize, 1, vertexTileSize) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
@@ -466,11 +475,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
         .indexCount = tileSize * 6});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
-        logger->info("Vertices:");
+        logger->info("\nVertices:");
       }
-
+#endif
       for (uint32_t y = 0; y < vertexTileSize; y++)
       {
         for (uint32_t x = 0; x < 2; x++)
@@ -478,24 +487,25 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           auto& vertex = result.vertices.emplace_back();
           vertex.position = {x, offset + y + 1};
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info(
               "\tvertex {}, position - {}",
               result.vertices.size() - 1,
               glm::to_string(vertex.position));
           }
+#endif
         }
       }
 
       result.bounds.emplace_back(
         Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {1, vertexTileSize - 1, 0, 0}});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
-
+#endif
       for (uint32_t y = 0; y < tileSize; y++)
       {
         uint32_t currentIndices[] = {
@@ -510,14 +520,15 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Filler mesh, top arm - Index count - {} for relem with vertex offset {}, index offset "
@@ -526,17 +537,17 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           relem.vertexOffset,
           relem.indexOffset);
       }
-
+#endif
       result.relems.emplace_back(relem);
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Bounds of this relem - min: {}, max: {}",
           glm::to_string(result.bounds.back().minPos),
           glm::to_string(result.bounds.back().maxPos));
       }
-
+#endif
       currentOffsetAddition = positionToIndex(1, tileSize, 2) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
@@ -556,11 +567,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
         .indexCount = tileSize * 6});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
-        logger->info("Vertices:");
+        logger->info("\nVertices:");
       }
-
+#endif
       for (uint32_t y = 0; y < 2; y++)
       {
         for (uint32_t x = 0; x < vertexTileSize; x++)
@@ -569,13 +580,14 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           auto& vertex = result.vertices.emplace_back();
           vertex.position = {-int32_t(offset + x), y};
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info(
               "\tvertex {}, position - {}",
               result.vertices.size() - 1,
               glm::to_string(vertex.position));
           }
+#endif
         }
       }
 
@@ -584,11 +596,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           .minPos = {-int32_t(offset + 0), 0, 0, 0},
           .maxPos = {-int32_t(offset + vertexTileSize - 1), 1, 0, 0}});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
-
+#endif
       for (uint32_t x = 0; x < tileSize; x++)
       {
         uint32_t currentIndices[] = {
@@ -603,13 +615,14 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Filler mesh, left arm - Index count - {} for relem with vertex offset {}, index offset "
@@ -618,17 +631,17 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           relem.vertexOffset,
           relem.indexOffset);
       }
-
+#endif
       result.relems.emplace_back(relem);
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Bounds of this relem - min: {}, max: {}",
           glm::to_string(result.bounds.back().minPos),
           glm::to_string(result.bounds.back().maxPos));
       }
-
+#endif
       currentOffsetAddition = positionToIndex(tileSize, 1, vertexTileSize) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
@@ -648,11 +661,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
         .indexCount = tileSize * 6});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
-        logger->info("Vertices:");
+        logger->info("\nVertices:");
       }
-
+#endif
       for (uint32_t y = 0; y < vertexTileSize; y++)
       {
         for (uint32_t x = 0; x < 2; x++)
@@ -660,13 +673,14 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           auto& vertex = result.vertices.emplace_back();
           vertex.position = {x, -int32_t(offset + y)};
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info(
               "\tvertex {}, position - {}",
               result.vertices.size() - 1,
               glm::to_string(vertex.position));
           }
+#endif
         }
       }
 
@@ -675,11 +689,11 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           .minPos = {0, -int32_t(offset + 0), 0, 0},
           .maxPos = {1, -int32_t(offset + vertexTileSize - 1), 0, 0}});
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
-
+#endif
       for (uint32_t y = 0; y < tileSize; y++)
       {
         uint32_t currentIndices[] = {
@@ -694,14 +708,15 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
 
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Filler mesh, bottom arm - Index count - {} for relem with vertex offset {}, index "
@@ -711,17 +726,17 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           relem.vertexOffset,
           relem.indexOffset);
       }
-
+#endif
       result.relems.emplace_back(relem);
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Bounds of this relem - min: {}, max: {}",
           glm::to_string(result.bounds.back().minPos),
           glm::to_string(result.bounds.back().maxPos));
       }
-
+#endif
       currentOffsetAddition = positionToIndex(1, tileSize, 2) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
@@ -748,34 +763,36 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       auto relem = (RenderElement{
         .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 6 * (gridSize + 1)});
-      if (DEBUG_FILE_WRITE)
+        .indexCount = 6 * (gridSize)});
+#if DEBUG_FILE_WRITE
       {
-        logger->info("Vertices:");
+        logger->info("\nVertices:");
       }
-
+#endif
       for (int32_t y = vertexGridSize - 1; y >= 0; y--)
       {
         for (uint32_t x = 0; x < 2; x++)
         {
           auto& vertex = result.vertices.emplace_back();
           vertex.position = glm::vec2(x, y) + vertexOffset;
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info(
               "\tvertex {}, position - {}",
               result.vertices.size() - 1,
               glm::to_string(vertex.position));
           }
+#endif
         }
       }
 
       result.bounds.emplace_back(
-        Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {1, vertexGridSize, 0, 0}});
-      if (DEBUG_FILE_WRITE)
+        Bounds{.minPos = {vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {1 + vertexOffset.x, vertexGridSize - 1 + vertexOffset.y, 0, 0}});
+#if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
+#endif
       for (uint32_t y = 0; y < gridSize; y++)
       {
         uint32_t currentIndices[] = {
@@ -789,13 +806,14 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Trim mesh, vertical segment - Index count - {} for relem with vertex offset {}, index "
@@ -805,17 +823,17 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           relem.vertexOffset,
           relem.indexOffset);
       }
-
+#endif
       result.relems.emplace_back(relem);
 
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Bounds of this relem - min: {}, max: {}",
           glm::to_string(result.bounds.back().minPos),
           glm::to_string(result.bounds.back().maxPos));
       }
-
+#endif
       currentOffsetAddition =
         positionToIndex(1, gridSize, 2) + 1; // because connected in the same mesh
       ETNA_VERIFYF(
@@ -833,33 +851,36 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       auto relem = (RenderElement{
         .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
         .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
-        .indexCount = 6 * gridSize});
-      if (DEBUG_FILE_WRITE)
+        .indexCount = 6 * (gridSize - 1)});
+#if DEBUG_FILE_WRITE
       {
-        logger->info("Vertices:");
+        logger->info("\nVertices:");
       }
+#endif
       for (uint32_t y = 0; y < 2; y++)
       {
         for (uint32_t x = 1; x < vertexGridSize; x++)
         {
           auto& vertex = result.vertices.emplace_back();
           vertex.position = glm::vec2(x, y) + vertexOffset;
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info(
               "\tvertex {}, position - {}",
               result.vertices.size() - 1,
               glm::to_string(vertex.position));
           }
+#endif
         }
       }
 
       result.bounds.emplace_back(
-        Bounds{.minPos = {1, 0, 0, 0}, .maxPos = {vertexGridSize, 1, 0, 0}});
-      if (DEBUG_FILE_WRITE)
+        Bounds{.minPos = {1 + vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {vertexGridSize - 1 + vertexOffset.x, vertexOffset.y, 0, 0}});
+#if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
       }
+#endif
       for (uint32_t x = 0; x < gridSize - 1; x++)
       {
         uint32_t currentIndices[] = {
@@ -873,13 +894,14 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         {
           currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
           result.indices.emplace_back(index);
-          if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
           {
             logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
           }
+#endif
         }
       }
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Trim mesh, horizontal segment - Index count - {} for relem with vertex offset {}, "
@@ -890,14 +912,16 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
           relem.vertexOffset,
           relem.indexOffset);
       }
+#endif
       result.relems.emplace_back(relem);
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "Bounds of this relem - min: {}, max: {}",
           glm::to_string(result.bounds.back().minPos),
           glm::to_string(result.bounds.back().maxPos));
       }
+#endif
       currentOffsetAddition = positionToIndex(gridSize - 1, 1, vertexGridSize - 1) + 1;
       ETNA_VERIFYF(
         currentOffsetAddition == currentMaxIndex + 1,
@@ -921,65 +945,71 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       .vertexOffset = static_cast<std::uint32_t>(result.vertices.size()),
       .indexOffset = static_cast<std::uint32_t>(result.indices.size()),
       .indexCount = (vertexGridSize * 4 - 4) * 3 / 2});
-    if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
     {
-      logger->info("Vertices:");
+      logger->info("\nVertices:");
     }
+#endif
     for (uint32_t i = 0; i < vertexGridSize - 1; i++)
     {
       auto& vertex = result.vertices.emplace_back();
       vertex.position = glm::vec2(i, 0);
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "\tvertex {}, position - {}",
           result.vertices.size() - 1,
           glm::to_string(vertex.position));
       }
+#endif
     }
     for (uint32_t i = 0; i < vertexGridSize - 1; i++)
     {
       auto& vertex = result.vertices.emplace_back();
       vertex.position = glm::vec2(vertexGridSize - 1, i);
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "\tvertex {}, position - {}",
           result.vertices.size() - 1,
           glm::to_string(vertex.position));
       }
+#endif
     }
     for (uint32_t i = 0; i < vertexGridSize - 1; i++)
     {
       auto& vertex = result.vertices.emplace_back();
       vertex.position = glm::vec2(vertexGridSize - 1 - i, vertexGridSize - 1);
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "\tvertex {}, position - {}",
           result.vertices.size() - 1,
           glm::to_string(vertex.position));
       }
+#endif
     }
     for (uint32_t i = 0; i < vertexGridSize - 1; i++)
     {
       auto& vertex = result.vertices.emplace_back();
       vertex.position = glm::vec2(0, vertexGridSize - 1 - i);
-      if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
       {
         logger->info(
           "\tvertex {}, position - {}",
           result.vertices.size() - 1,
           glm::to_string(vertex.position));
       }
+#endif
     }
 
     result.bounds.emplace_back(
-      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexGridSize - 1, vertexGridSize - 1, 0, 0}});
-    if (DEBUG_FILE_WRITE)
+      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexGridSize, vertexGridSize, 0, 0}});
+#if DEBUG_FILE_WRITE
     {
       logger->info("Indices:");
     }
+#endif
     for (uint32_t i = 0; i < vertexGridSize * 4 - 4; i += 2)
     {
       uint32_t currentIndices[] = {i + 1, i, i + 2};
@@ -987,13 +1017,15 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       {
         currentMaxIndex = glm::max(currentMaxIndex, static_cast<int32_t>(index));
         result.indices.emplace_back(index);
-        if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
         {
           logger->info("index {}, value - {}", result.indices.size() - 1, result.indices.back());
         }
+#endif
       }
     }
-    if (DEBUG_FILE_WRITE)
+    result.indices.back() = 0;
+#if DEBUG_FILE_WRITE
     {
       logger->info(
         "Seam mesh, Index count - {} for relem with vertex offset {}, index "
@@ -1003,16 +1035,16 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         relem.vertexOffset,
         relem.indexOffset);
     }
-
+#endif
     result.relems.emplace_back(relem);
-    if (DEBUG_FILE_WRITE)
+#if DEBUG_FILE_WRITE
     {
       logger->info(
         "Bounds of this relem - min: {}, max: {}",
         glm::to_string(result.bounds.back().minPos),
         glm::to_string(result.bounds.back().maxPos));
     }
-
+#endif
     currentOffsetAddition = vertexGridSize * 4 - 4 + 1;
     ETNA_VERIFYF(
       currentOffsetAddition == currentMaxIndex + 1,
@@ -1081,7 +1113,7 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
   uint32_t scale = 1;
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    scale = 1 << level;
+    scale = 1u << level;
     for (uint32_t i = 0; i < 12; i++)
     {
       result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
@@ -1091,21 +1123,21 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    scale = 1 << level;
+    scale = 1u << level;
     result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
     result.meshes.emplace_back(fillerMesh);
   }
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    scale = 1 << level;
+    scale = 1u << level;
     result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
     result.meshes.emplace_back(trimMesh);
   }
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
-    scale = 1 << level;
+    scale = 1u << level;
     result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
     result.meshes.emplace_back(seamMesh);
   }
@@ -1296,7 +1328,7 @@ void TerrainManager::loadTerrain()
 
 void TerrainManager::moveClipmap(glm::vec3 camera_position)
 {
-  ZoneScoped;
+  ZoneScopedN("moveClipmap");
   glm::vec2 cameraHorizontalPosition = glm::vec2(camera_position.x, camera_position.z);
 
   std::uint32_t meshOffset = 0;
@@ -1339,7 +1371,7 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
     glm::vec2 fillerSkip = {};
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(static_cast<float>(1 << level));
+      scale = glm::vec2(static_cast<float>(1u << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
       tileExtent = glm::vec2(static_cast<float>(tileSize << level));
@@ -1391,7 +1423,7 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
   {
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(static_cast<float>(1 << level));
+      scale = glm::vec2(static_cast<float>(1u << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
       newPosition = snappedPosition;
@@ -1426,10 +1458,10 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(static_cast<float>(1 << level));
+      scale = glm::vec2(static_cast<float>(1u << level));
       snappedPosition = glm::floor(cameraHorizontalPosition / scale) * scale;
 
-      nextScale = glm::vec2(static_cast<float>(1 << (level + 1)));
+      nextScale = glm::vec2(static_cast<float>(1u << (level + 1)));
       nextSnappedPosition = glm::floor(cameraHorizontalPosition / nextScale) * nextScale;
 
       tileCenter = snappedPosition + scale * glm::vec2(0.5);
@@ -1465,8 +1497,8 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
-      scale = glm::vec2(static_cast<float>(1 << level));
-      nextScale = glm::vec2(static_cast<float>(1 << (level + 1)));
+      scale = glm::vec2(static_cast<float>(1u << level));
+      nextScale = glm::vec2(static_cast<float>(1u << (level + 1)));
       nextSnappedPosition = glm::floor(cameraHorizontalPosition / nextScale) * nextScale;
 
       nextBase = nextSnappedPosition - glm::vec2(static_cast<float>((tileSize) << (level + 1)));
