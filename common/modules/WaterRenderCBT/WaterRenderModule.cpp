@@ -218,20 +218,17 @@ void WaterRenderModule::update(const RenderPacket& packet, float camera_fovy, fl
   {
     for (int j = 0; j < 2; j++)
     {
-      subdivisionParams.frustumPlanes[i * 2 + j].x = subdivisionParams.worldProjView[0][3] +
-        (subdivisionParams.worldProjView[0][i] * (j == 0 ? 1 : -1));
-      subdivisionParams.frustumPlanes[i * 2 + j].y = subdivisionParams.worldProjView[1][3] +
-        (subdivisionParams.worldProjView[1][i] * (j == 0 ? 1 : -1));
-      subdivisionParams.frustumPlanes[i * 2 + j].z = subdivisionParams.worldProjView[2][3] +
-        (subdivisionParams.worldProjView[2][i] * (j == 0 ? 1 : -1));
-      subdivisionParams.frustumPlanes[i * 2 + j].w = subdivisionParams.worldProjView[3][3] +
-        (subdivisionParams.worldProjView[3][i] * (j == 0 ? 1 : -1));
+      subdivisionParams.frustumPlanes[i * 2 + j].x =
+        subdivisionParams.projView[0][3] + (subdivisionParams.projView[0][i] * (j == 0 ? 1 : -1));
+      subdivisionParams.frustumPlanes[i * 2 + j].y =
+        subdivisionParams.projView[1][3] + (subdivisionParams.projView[1][i] * (j == 0 ? 1 : -1));
+      subdivisionParams.frustumPlanes[i * 2 + j].z =
+        subdivisionParams.projView[2][3] + (subdivisionParams.projView[2][i] * (j == 0 ? 1 : -1));
+      subdivisionParams.frustumPlanes[i * 2 + j].w =
+        subdivisionParams.projView[3][3] + (subdivisionParams.projView[3][i] * (j == 0 ? 1 : -1));
 
-      subdivisionParams.frustumPlanes[i * 2 + j] /= glm::length(
-        glm::vec3(
-          subdivisionParams.frustumPlanes[i * 2 + j].x,
-          subdivisionParams.frustumPlanes[i * 2 + j].y,
-          subdivisionParams.frustumPlanes[i * 2 + j].z));
+      subdivisionParams.frustumPlanes[i * 2 + j] =
+        glm::normalize(subdivisionParams.frustumPlanes[i * 2 + j]);
     }
   }
 

@@ -115,10 +115,10 @@ bool isVisible(vec4[3] triangle_vertices)
 
 vec2 levelOfDetail(vec4[3] triangle_vertices)
 {
-  // if (!isVisible(triangle_vertices))
-  // {
-  //   return vec2(0.0, 0.0);
-  // }
+  if (!isVisible(triangle_vertices))
+  {
+    return vec2(0.0, 0.0);
+  }
 
   // if (!displacementVariance(triangle_vertices))
   // {
@@ -144,7 +144,7 @@ void main()
     lebSquareNodeMerge(node, diamond);
   }
 
-  if (true)
+  if (targetLOD.y > 0.0)
   {
     data[gl_InvocationID].texCoord =
       vec2[3](triangleVertices[0].xz, triangleVertices[1].xz, triangleVertices[2].xz);

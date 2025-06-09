@@ -200,19 +200,15 @@ void TerrainRenderModule::update(const RenderPacket& packet, float camera_fovy, 
     for (int j = 0; j < 2; j++)
     {
       params.frustumPlanes[i * 2 + j].x =
-        params.worldProjView[0][3] + (params.worldProjView[0][i] * (j == 0 ? 1 : -1));
+        params.projView[0][3] + (params.projView[0][i] * (j == 0 ? 1 : -1));
       params.frustumPlanes[i * 2 + j].y =
-        params.worldProjView[1][3] + (params.worldProjView[1][i] * (j == 0 ? 1 : -1));
+        params.projView[1][3] + (params.projView[1][i] * (j == 0 ? 1 : -1));
       params.frustumPlanes[i * 2 + j].z =
-        params.worldProjView[2][3] + (params.worldProjView[2][i] * (j == 0 ? 1 : -1));
+        params.projView[2][3] + (params.projView[2][i] * (j == 0 ? 1 : -1));
       params.frustumPlanes[i * 2 + j].w =
-        params.worldProjView[3][3] + (params.worldProjView[3][i] * (j == 0 ? 1 : -1));
+        params.projView[3][3] + (params.projView[3][i] * (j == 0 ? 1 : -1));
 
-      params.frustumPlanes[i * 2 + j] *= glm::length(
-        glm::vec3(
-          params.frustumPlanes[i * 2 + j].x,
-          params.frustumPlanes[i * 2 + j].y,
-          params.frustumPlanes[i * 2 + j].z));
+      params.frustumPlanes[i * 2 + j] = glm::normalize(params.frustumPlanes[i * 2 + j]);
     }
   }
 

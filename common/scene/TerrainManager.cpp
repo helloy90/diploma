@@ -875,7 +875,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       }
 
       result.bounds.emplace_back(
-        Bounds{.minPos = {1 + vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {vertexGridSize - 1 + vertexOffset.x, vertexOffset.y, 0, 0}});
+        Bounds{.minPos = {1 + vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {vertexGridSize - 1 + vertexOffset.x, 1 + vertexOffset.y, 0, 0}});
 #if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");

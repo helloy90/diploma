@@ -37,10 +37,16 @@ public:
 
 private:
   void cullTerrain(
-    vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout, const RenderPacket& packet);
+    vk::CommandBuffer cmd_buf,
+    vk::PipelineLayout pipeline_layout,
+    const RenderPacket& packet,
+    const etna::Buffer& matrices_buffer);
 
   void renderTerrain(
-    vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout, const RenderPacket& packet);
+    vk::CommandBuffer cmd_buf,
+    vk::PipelineLayout pipeline_layout,
+    const RenderPacket& packet,
+    const etna::Buffer& matrices_buffer);
 
 private:
   struct PushConstants
@@ -55,6 +61,7 @@ private:
   MeshesParams meshesParams;
 
   etna::Buffer meshesParamsBuffer;
+  etna::Buffer frustumPlanesBuffer;
 
   etna::GraphicsPipeline terrainRenderPipeline;
   etna::ComputePipeline cullingPipeline;

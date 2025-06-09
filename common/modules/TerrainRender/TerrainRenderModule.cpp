@@ -10,6 +10,7 @@
 #include <etna/Profiling.hpp>
 
 #include "WaterRender/shaders/MeshesParams.h"
+#include "etna/DescriptorSet.hpp"
 
 
 TerrainRenderModule::TerrainRenderModule()
@@ -27,6 +28,14 @@ void TerrainRenderModule::allocateResources()
       .allocationCreate =
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
       .name = "terrainMeshesParams"});
+  frustumPlanesBuffer = etna::get_context().createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = sizeof(glm::vec4) * 6,
+      .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+      .allocationCreate =
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+      .name = "FrustumPlanesTerrain"});
 
   terrainMgr->loadTerrain();
 
@@ -125,6 +134,27 @@ void TerrainRenderModule::loadMaps(std::vector<etna::Binding> terrain_bindings)
 void TerrainRenderModule::update(const RenderPacket& packet)
 {
   terrainMgr->moveClipmap(packet.cameraWorldPosition);
+
+  auto projView = packet.projView;
+
+  glm::vec4 frustumPlanes[6] = {};
+
+  for (int i = 0; i < 3; i++)
+  {
+    for (int j = 0; j < 2; j++)
+    {
+      frustumPlanes[i * 2 + j].x = projView[0][3] + (projView[0][i] * (j == 0 ? 1 : -1));
+      frustumPlanes[i * 2 + j].y = projView[1][3] + (projView[1][i] * (j == 0 ? 1 : -1));
+      frustumPlanes[i * 2 + j].z = projView[2][3] + (projView[2][i] * (j == 0 ? 1 : -1));
+      frustumPlanes[i * 2 + j].w = projView[3][3] + (projView[3][i] * (j == 0 ? 1 : -1));
+
+      frustumPlanes[i * 2 + j] = glm::normalize(frustumPlanes[i * 2 + j]);
+    }
+  }
+
+  frustumPlanesBuffer.map();
+  std::memcpy(frustumPlanesBuffer.data(), &frustumPlanes, sizeof(glm::vec4) * 6);
+  frustumPlanesBuffer.unmap();
 }
 
 void TerrainRenderModule::execute(
@@ -134,8 +164,13 @@ void TerrainRenderModule::execute(
   std::vector<etna::RenderTargetState::AttachmentParams> color_attachment_params,
   etna::RenderTargetState::AttachmentParams depth_attachment_params)
 {
-  cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
-  cullTerrain(cmd_buf, cullingPipeline.getVkPipelineLayout(), packet);
+  auto& matricesBuffer = terrainMgr->getInstanceMatricesBuffer();
+
+  {
+    ETNA_PROFILE_GPU(cmd_buf, cullTerrain);
+    cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());
+    cullTerrain(cmd_buf, cullingPipeline.getVkPipelineLayout(), packet, matricesBuffer);
+  }
 
   {
     ETNA_PROFILE_GPU(cmd_buf, renderTerrain);
@@ -143,7 +178,7 @@ void TerrainRenderModule::execute(
       cmd_buf, {{0, 0}, {extent.x, extent.y}}, color_attachment_params, depth_attachment_params);
 
     cmd_buf.bindPipeline(vk::PipelineBindPoint::eGraphics, terrainRenderPipeline.getVkPipeline());
-    renderTerrain(cmd_buf, terrainRenderPipeline.getVkPipelineLayout(), packet);
+    renderTerrain(cmd_buf, terrainRenderPipeline.getVkPipelineLayout(), packet, matricesBuffer);
   }
 }
 
@@ -155,7 +190,10 @@ void TerrainRenderModule::drawGui()
 }
 
 void TerrainRenderModule::cullTerrain(
-  vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout, const RenderPacket& packet)
+  vk::CommandBuffer cmd_buf,
+  vk::PipelineLayout pipeline_layout,
+  const RenderPacket& packet,
+  const etna::Buffer& matrices_buffer)
 {
   ZoneScoped;
   {
@@ -191,11 +229,12 @@ void TerrainRenderModule::cullTerrain(
      etna::Binding{1, terrainMgr->getBoundsBuffer().genBinding()},
      etna::Binding{2, terrainMgr->getMeshesBuffer().genBinding()},
      etna::Binding{3, terrainMgr->getInstanceMeshesBuffer().genBinding()},
-     etna::Binding{4, terrainMgr->getInstanceMatricesBuffer().genBinding()},
+     etna::Binding{4, matrices_buffer.genBinding()},
      etna::Binding{5, terrainMgr->getRelemInstanceOffsetsBuffer().genBinding()},
      etna::Binding{6, terrainMgr->getDrawInstanceIndicesBuffer().genBinding()},
      etna::Binding{7, terrainMgr->getDrawCommandsBuffer().genBinding()},
-     etna::Binding{8, meshesParamsBuffer.genBinding()}});
+     etna::Binding{8, meshesParamsBuffer.genBinding()},
+     etna::Binding{9, frustumPlanesBuffer.genBinding()}});
   auto vkSet = set.getVkSet();
 
   cmd_buf.bindDescriptorSets(
@@ -235,7 +274,10 @@ void TerrainRenderModule::cullTerrain(
 }
 
 void TerrainRenderModule::renderTerrain(
-  vk::CommandBuffer cmd_buf, vk::PipelineLayout pipeline_layout, const RenderPacket& packet)
+  vk::CommandBuffer cmd_buf,
+  vk::PipelineLayout pipeline_layout,
+  const RenderPacket& packet,
+  const etna::Buffer& matrices_buffer)
 {
   ZoneScoped;
   if (!terrainMgr->getVertexBuffer())
@@ -251,7 +293,7 @@ void TerrainRenderModule::renderTerrain(
     shaderInfo.getDescriptorLayoutId(1),
     cmd_buf,
     {
-      etna::Binding{0, terrainMgr->getInstanceMatricesBuffer().genBinding()},
+      etna::Binding{0, matrices_buffer.genBinding()},
       etna::Binding{1, terrainMgr->getDrawInstanceIndicesBuffer().genBinding()},
     });
 

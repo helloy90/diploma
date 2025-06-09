@@ -224,9 +224,8 @@ mat3x3 _lebSquareDecodeTransformationMatrix(CBTNode node)
   {
     transform = _lebGetSplitMatrix(_lebGetBit(node.index, bitIndex)) * transform;
   }
-  transform = _lebGetMirrorMatrix((node.depth ^ 1) & 1) * transform;
-
-  return transform;
+  
+  return _lebGetMirrorMatrix((node.depth ^ 1) & 1) * transform;
 }
 
 

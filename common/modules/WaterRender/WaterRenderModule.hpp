@@ -66,6 +66,8 @@ private:
   MeshesParams meshesParams;
   etna::Buffer meshesParamsBuffer;
 
+  etna::Buffer frustumPlanesBuffer;
+
   etna::GraphicsPipeline waterRenderPipeline;
   etna::ComputePipeline cullingPipeline;
 };
