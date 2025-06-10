@@ -9,7 +9,7 @@
 Зависимости подкачиваются автоматически при помощи [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake)
 
 ## Про зависимости
-Для упрощения взаимодействия с графическим API Vulkan используется библиотека [Etna](https://github.com/AlexandrShcherbakov/etna)
+Для упрощения взаимодействия с графическим API Vulkan используется библиотека [Etna](https://github.com/AlexandrShcherbakov/etna).
 Для взаимодействия с оконным API операционной системы используется [GLFW](https://github.com/glfw/glfw).
 Для логирования используется [spdlog](https://github.com/gabime/spdlog), и соответственно для форматирования [fmt](https://github.com/fmtlib/fmt).
 Для малоразмерной линейной алгебры используется [glm](https://github.com/g-truc/glm).
