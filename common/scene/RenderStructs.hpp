@@ -5,9 +5,8 @@
 // Bounds for each render element
 struct Bounds
 {
-  // w coordinate is padding
-  glm::vec4 minPos; 
-  glm::vec4 maxPos;
+  glm::vec2 minPos; 
+  glm::vec2 maxPos;
 };
 
 // A single render element (relem) corresponds to a single draw call

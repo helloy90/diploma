@@ -110,8 +110,8 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
       result.bounds.emplace_back(
         Bounds{
-          .minPos = {-static_cast<int32_t>(tileSize), 0, 0, 0},
-          .maxPos = {static_cast<int32_t>(vertexTileSize), 1, 0, 0}});
+          .minPos = {-static_cast<int32_t>(tileSize), 0},
+          .maxPos = {static_cast<int32_t>(vertexTileSize), 1}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -206,8 +206,8 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
       result.bounds.emplace_back(
         Bounds{
-          .minPos = {0, -static_cast<int32_t>(tileSize), 0, 0},
-          .maxPos = {1, static_cast<int32_t>(vertexTileSize), 0, 0}});
+          .minPos = {0, -static_cast<int32_t>(tileSize)},
+          .maxPos = {1, static_cast<int32_t>(vertexTileSize)}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -305,7 +305,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
     }
 
     result.bounds.emplace_back(
-      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexTileSize - 1, vertexTileSize - 1, 0, 0}});
+      Bounds{.minPos = {0, 0}, .maxPos = {vertexTileSize - 1, vertexTileSize - 1}});
 
     for (uint32_t y = 0; y < tileSize; y++)
     {
@@ -407,8 +407,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      result.bounds.emplace_back(
-        Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexTileSize - 1, 1, 0, 0}});
+      result.bounds.emplace_back(Bounds{.minPos = {0, 0}, .maxPos = {vertexTileSize - 1, 1}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -498,8 +497,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      result.bounds.emplace_back(
-        Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {1, vertexTileSize - 1, 0, 0}});
+      result.bounds.emplace_back(Bounds{.minPos = {0, 0}, .maxPos = {1, vertexTileSize - 1}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -593,8 +591,8 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
       result.bounds.emplace_back(
         Bounds{
-          .minPos = {-int32_t(offset + 0), 0, 0, 0},
-          .maxPos = {-int32_t(offset + vertexTileSize - 1), 1, 0, 0}});
+          .minPos = {-int32_t(offset + 0), 0},
+          .maxPos = {-int32_t(offset + vertexTileSize - 1), 1}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -686,8 +684,8 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
       result.bounds.emplace_back(
         Bounds{
-          .minPos = {0, -int32_t(offset + 0), 0, 0},
-          .maxPos = {1, -int32_t(offset + vertexTileSize - 1), 0, 0}});
+          .minPos = {0, -int32_t(offset + 0)},
+          .maxPos = {1, -int32_t(offset + vertexTileSize - 1)}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -787,7 +785,9 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       }
 
       result.bounds.emplace_back(
-        Bounds{.minPos = {vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {1 + vertexOffset.x, vertexGridSize - 1 + vertexOffset.y, 0, 0}});
+        Bounds{
+          .minPos = glm::vec2(0, 0) + vertexOffset,
+          .maxPos = glm::vec2(1, vertexGridSize - 1) + vertexOffset});
 #if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
@@ -875,7 +875,9 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
       }
 
       result.bounds.emplace_back(
-        Bounds{.minPos = {1 + vertexOffset.x, vertexOffset.y, 0, 0}, .maxPos = {vertexGridSize - 1 + vertexOffset.x, 1 + vertexOffset.y, 0, 0}});
+        Bounds{
+          .minPos = glm::vec2(1, 0) + vertexOffset,
+          .maxPos = glm::vec2(vertexGridSize - 1, 1) + vertexOffset});
 #if DEBUG_FILE_WRITE
       {
         logger->info("Indices:");
@@ -1004,7 +1006,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
     }
 
     result.bounds.emplace_back(
-      Bounds{.minPos = {0, 0, 0, 0}, .maxPos = {vertexGridSize, vertexGridSize, 0, 0}});
+      Bounds{.minPos = {0, 0}, .maxPos = {vertexGridSize, vertexGridSize}});
 #if DEBUG_FILE_WRITE
     {
       logger->info("Indices:");
@@ -1221,6 +1223,11 @@ void TerrainManager::uploadData(
             VMA_ALLOCATION_CREATE_MAPPED_BIT,
           .name = fmt::format("unifiedInstanceMatricesbuf{}", i)});
     });
+
+  spdlog::info(
+    "{} - relem bounds size, {} - instance matrices size",
+    renderElementsBounds.size(),
+    instanceMatrices.size());
 
   unifiedInstanceMeshesbuf = ctx.createBuffer(
     etna::Buffer::CreateInfo{
@@ -1480,6 +1487,20 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
       instanceMatrices[meshOffset][3].x = newPosition.x;
       instanceMatrices[meshOffset][3].y = 0;
       instanceMatrices[meshOffset][3].z = newPosition.y;
+
+      // for (std::uint32_t relem = meshes[trimMesh].firstRelem;
+      //      relem < meshes[trimMesh].firstRelem + meshes[trimMesh].relemCount;
+      //      relem++)
+      // {
+      //   auto& currentBounds = renderElementsBounds[relem];
+      //   glm::vec3 newMin = rotationMatrices[index] * glm::vec4(currentBounds.minPos.x, 0, currentBounds.minPos.y, 1);
+      //   glm::vec3 newMax = rotationMatrices[index] * glm::vec4(currentBounds.maxPos.x, 0, currentBounds.maxPos.y, 1);
+
+      //   currentBounds = {
+      //     .minPos = glm::vec2(newMin.x, newMin.z),
+      //     .maxPos = glm::vec2(newMax.x, newMax.z)
+      //   };
+      // }
 
       ETNA_VERIFYF(
         instanceMeshes[meshOffset] == trimMesh,
