@@ -14,7 +14,7 @@
 #include <etna/Profiling.hpp>
 
 #include "RenderPacket.hpp"
-#include "WaterRender/shaders/WaterRenderParams.h"
+#include "shaders/WaterRenderParams.h"
 #include "shaders/SubdivisionParams.h"
 #include "shaders/WaterParams.h"
 

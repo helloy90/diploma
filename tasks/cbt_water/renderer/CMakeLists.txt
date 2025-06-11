@@ -7,6 +7,8 @@ add_executable(project_renderer_water_cbt
   GBuffer.cpp
 )
 
+add_subdirectory(local_modules)
+
 target_link_libraries(project_renderer_water_cbt
   PRIVATE glfw etna glm::glm wsi gui scene render_utils 
   lights_module water_generator_module water_render_cbt_module 

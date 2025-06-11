@@ -15,7 +15,7 @@
 
 #include "modules/Light/LightModule.hpp"
 #include "modules/TerrainGenerator/TerrainGeneratorModule.hpp"
-#include "modules/TerrainRender/TerrainRenderModule.hpp"
+#include "local_modules/TerrainRender/TerrainRenderModule.hpp"
 #include "modules/RenderPacket.hpp"
 
 #include "FramePacket.hpp"

@@ -15,7 +15,7 @@
 
 #include "modules/Light/LightModule.hpp"
 #include "modules/WaterGenerator/WaterGeneratorModule.hpp"
-#include "modules/WaterRender/WaterRenderModule.hpp"
+#include "local_modules/WaterRender/WaterRenderModule.hpp"
 
 #include "modules/RenderPacket.hpp"
 

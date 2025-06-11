@@ -10,7 +10,7 @@
 #include "shaders/MeshesParams.h"
 #include "shaders/WaterParams.h"
 #include "shaders/WaterRenderParams.h"
-#include "../RenderPacket.hpp"
+#include "modules/RenderPacket.hpp"
 
 
 class WaterRenderModule

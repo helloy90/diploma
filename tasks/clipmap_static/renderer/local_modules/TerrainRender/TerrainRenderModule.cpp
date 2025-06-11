@@ -9,7 +9,6 @@
 #include <etna/PipelineManager.hpp>
 #include <etna/Profiling.hpp>
 
-#include "WaterRender/shaders/MeshesParams.h"
 #include "etna/DescriptorSet.hpp"
 
 

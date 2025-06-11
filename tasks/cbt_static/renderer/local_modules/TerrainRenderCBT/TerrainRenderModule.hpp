@@ -8,7 +8,7 @@
 #include <etna/DescriptorSet.hpp>
 #include <etna/OneShotCmdMgr.hpp>
 
-#include "../RenderPacket.hpp"
+#include "modules/RenderPacket.hpp"
 #include "CBT/CBTree.hpp"
 #include "shaders/SubdivisionParams.h"
 

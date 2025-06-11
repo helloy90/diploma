@@ -12,7 +12,8 @@
 
 #include "scene/TerrainManager.hpp"
 #include "shaders/MeshesParams.h"
-#include "../RenderPacket.hpp"
+#include "modules/RenderPacket.hpp"
+
 
 class TerrainRenderModule
 {
