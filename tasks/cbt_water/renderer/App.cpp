@@ -6,11 +6,13 @@
 
 
 App::App()
+  : movingOnPath(false)
 {
   glm::uvec2 initialRes = {1600, 900};
-  mainWindow = windowing.createWindow(OsWindow::CreateInfo{
-    .resolution = initialRes,
-  });
+  mainWindow = windowing.createWindow(
+    OsWindow::CreateInfo{
+      .resolution = initialRes,
+    });
 
   renderer.reset(new Renderer(initialRes));
 
@@ -26,6 +28,8 @@ App::App()
   ImGuiRenderer::enableImGuiForWindow(mainWindow->native());
 
   renderer->loadScene();
+
+  cameraPathPoints = {{0, 20, 0}, {-1000, 20, 1000}, {-1000, 20, 0}, {0, 20, 0}};
 }
 
 void App::run()
@@ -54,17 +58,47 @@ void App::processInput(float dt)
   if (mainWindow->keyboard[KeyboardKey::kEscape] == ButtonState::Falling)
     mainWindow->askToClose();
 
-  if (is_held_down(mainWindow->keyboard[KeyboardKey::kLeftShift]))
-    camMoveSpeed = 50;
-  else
-    camMoveSpeed = 2;
-
   if (mainWindow->mouse[MouseButton::mbRight] == ButtonState::Rising)
     mainWindow->captureMouse = !mainWindow->captureMouse;
 
-  moveCam(mainCam, mainWindow->keyboard, dt);
-  if (mainWindow->captureMouse)
-    rotateCam(mainCam, mainWindow->mouse, dt);
+  if (mainWindow->keyboard[KeyboardKey::kP] == ButtonState::Falling)
+  {
+    movingOnPath = true;
+    currentPointIndex = 0;
+    mainCam.position = cameraPathPoints[currentPointIndex];
+  }
+
+  if (movingOnPath)
+  {
+    moveCamToPoint(mainCam, cameraPathPoints[currentPointIndex], dt);
+
+    if (mainWindow->keyboard[KeyboardKey::k0] == ButtonState::Falling)
+    {
+      movingOnPath = false;
+    }
+
+    if (glm::length(cameraPathPoints[currentPointIndex] - mainCam.position) < 1e-3)
+    {
+      currentPointIndex++;
+    }
+
+    if (currentPointIndex == cameraPathPoints.size())
+    {
+      movingOnPath = false;
+    }
+  }
+  else
+  {
+    if (is_held_down(mainWindow->keyboard[KeyboardKey::kLeftShift]))
+      camMoveSpeed = 50;
+    else
+      camMoveSpeed = 2;
+
+    moveCam(mainCam, mainWindow->keyboard, dt);
+
+    if (mainWindow->captureMouse)
+      rotateCam(mainCam, mainWindow->mouse, dt);
+  }
 
   renderer->debugInput(mainWindow->keyboard);
 }
@@ -73,11 +107,9 @@ void App::drawFrame(float dt)
 {
   ZoneScoped;
 
-  renderer->update(FramePacket{
-    .mainCam = mainCam,
-    .currentTime = static_cast<float>(windowing.getTime()),
-    .deltaTime = dt
-  });
+  renderer->update(
+    FramePacket{
+      .mainCam = mainCam, .currentTime = static_cast<float>(windowing.getTime()), .deltaTime = dt});
   renderer->drawFrame();
 }
 
@@ -108,6 +140,17 @@ void App::moveCam(Camera& cam, const Keyboard& kb, float dt)
   // NOTE: This is how you make moving diagonally not be faster than
   // in a straight line.
   cam.move(dt * camMoveSpeed * (length(dir) > 1e-9 ? normalize(dir) : dir));
+}
+
+void App::moveCamToPoint(Camera& cam, glm::vec3 point, float dt)
+{
+  glm::vec3 dir = point - cam.position;
+
+  dir = (length(dir) > 1e-9 ? normalize(dir) : dir);
+
+  cam.lookAt(cam.position, cam.position + dir, {0, 1, 0});
+
+  cam.move(dt * 100 * dir);
 }
 
 void App::rotateCam(Camera& cam, const Mouse& ms, float /*dt*/)
