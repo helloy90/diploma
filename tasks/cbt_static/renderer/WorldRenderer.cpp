@@ -71,6 +71,24 @@ void WorldRenderer::loadScene()
   terrainRenderModule.loadMaps(
     terrainGeneratorModule.getBindings(vk::ImageLayout::eShaderReadOnlyOptimal));
 
+  lightModule.loadLights(
+    {{.pos = {0, 27, 0}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 15},
+     {.pos = {0, 5, 0}, .radius = 0, .worldPos = {}, .color = {1, 0, 1}, .intensity = 15},
+     {.pos = {0, 5, 25}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 15},
+     {.pos = {3, 5, 50}, .radius = 0, .worldPos = {}, .color = {0.5, 1, 0.5}, .intensity = 15},
+     {.pos = {75, 5, 75}, .radius = 0, .worldPos = {}, .color = {1, 0.5, 1}, .intensity = 15},
+     {.pos = {50, 5, 20}, .radius = 0, .worldPos = {}, .color = {0, 1, 1}, .intensity = 15},
+     {.pos = {25, 5, 50}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 15},
+     {.pos = {50, 5, 50}, .radius = 0, .worldPos = {}, .color = {0.3, 1, 0}, .intensity = 15},
+     {.pos = {25, 5, 10}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 15},
+     {.pos = {100, 5, 100}, .radius = 0, .worldPos = {}, .color = {1, 0.5, 0.5}, .intensity = 15},
+     {.pos = {150, 5, 150}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 100},
+     {.pos = {25, 5, 10}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 15},
+     {.pos = {10, 5, 25}, .radius = 0, .worldPos = {}, .color = {1, 0, 1}, .intensity = 15}},
+    {{.direction = glm::vec3{1, -0.35, -3},
+      .intensity = 1.0f,
+      .color = glm::vec3{1, 0.694, 0.32}}});
+
   lightModule.loadMaps(terrainGeneratorModule.getBindings(vk::ImageLayout::eGeneral));
 
   lightModule.displaceLights();

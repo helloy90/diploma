@@ -66,7 +66,11 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 // call only after loadShaders(...)
 void WorldRenderer::loadScene()
 {
-  lightModule.loadLights();
+  lightModule.loadLights(
+    {{.pos = {0, 27, 0}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 15}},
+    {{.direction = glm::vec3{1, -0.35, -3},
+      .intensity = 1.0f,
+      .color = glm::vec3{1, 0.694, 0.32}}});
 
   waterRenderModule.loadMaps();
 
@@ -279,7 +283,8 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
       cmd_buf,
       waterGeneratorModule.getHeightMap().get(),
       vk::PipelineStageFlagBits2::eTessellationControlShader |
-        vk::PipelineStageFlagBits2::eTessellationEvaluationShader | vk::PipelineStageFlagBits2::eFragmentShader,
+        vk::PipelineStageFlagBits2::eTessellationEvaluationShader |
+        vk::PipelineStageFlagBits2::eFragmentShader,
       vk::AccessFlagBits2::eShaderSampledRead,
       vk::ImageLayout::eShaderReadOnlyOptimal,
       vk::ImageAspectFlagBits::eColor);

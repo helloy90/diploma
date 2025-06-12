@@ -32,8 +32,6 @@ void LightModule::allocateResources()
 
   transferHelper = std::make_unique<etna::BlockingTransferHelper>(
     etna::BlockingTransferHelper::CreateInfo{.stagingSize = 4096 * 4096 * 6});
-
-  loadLights();
 }
 
 void LightModule::loadShaders()
@@ -49,25 +47,11 @@ void LightModule::setupPipelines()
   lightDisplacementPipeline = pipelineManager.createComputePipeline("lights_displacement", {});
 }
 
-void LightModule::loadLights()
+void LightModule::loadLights(std::vector<Light> new_light, std::vector<DirectionalLight> new_directional_lights)
 {
   auto& ctx = etna::get_context();
 
-  lights = {
-    Light{.pos = {0, 27, 0}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 15},
-    Light{.pos = {0, 5, 0}, .radius = 0, .worldPos = {}, .color = {1, 0, 1}, .intensity = 15},
-    Light{.pos = {0, 5, 25}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 15},
-    Light{.pos = {3, 5, 50}, .radius = 0, .worldPos = {}, .color = {0.5, 1, 0.5}, .intensity = 15},
-    Light{.pos = {75, 5, 75}, .radius = 0, .worldPos = {}, .color = {1, 0.5, 1}, .intensity = 15},
-    Light{.pos = {50, 5, 20}, .radius = 0, .worldPos = {}, .color = {0, 1, 1}, .intensity = 15},
-    Light{.pos = {25, 5, 50}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 15},
-    Light{.pos = {50, 5, 50}, .radius = 0, .worldPos = {}, .color = {0.3, 1, 0}, .intensity = 15},
-    Light{.pos = {25, 5, 10}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 15},
-    Light{
-      .pos = {100, 5, 100}, .radius = 0, .worldPos = {}, .color = {1, 0.5, 0.5}, .intensity = 15},
-    Light{.pos = {150, 5, 150}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 100},
-    Light{.pos = {25, 5, 10}, .radius = 0, .worldPos = {}, .color = {1, 1, 0}, .intensity = 15},
-    Light{.pos = {10, 5, 25}, .radius = 0, .worldPos = {}, .color = {1, 0, 1}, .intensity = 15}};
+  lights = new_light;
 
   for (auto& light : lights)
   {
@@ -80,8 +64,7 @@ void LightModule::loadLights()
     // spdlog::info("radius - {}", light.radius);
   }
 
-  directionalLights = {DirectionalLight{
-    .direction = glm::vec3{1, -0.35, -3}, .intensity = 1.0f, .color = glm::vec3{1, 0.694, 0.32}}};
+  directionalLights = new_directional_lights;
 
   vk::DeviceSize directionalLightsSize = sizeof(DirectionalLight) * directionalLights.size();
   vk::DeviceSize lightsSize = sizeof(Light) * lights.size();

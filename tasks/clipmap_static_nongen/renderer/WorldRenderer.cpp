@@ -15,7 +15,6 @@
 
 WorldRenderer::WorldRenderer()
   : lightModule()
-  , terrainGeneratorModule()
   , terrainRenderModule()
   , freezeClipmap(false)
   , renderTargetFormat(vk::Format::eB10G11R11UfloatPack32)
@@ -53,6 +52,11 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 
   cubemapSampler = etna::Sampler(
     etna::Sampler::CreateInfo{.filter = vk::Filter::eLinear, .name = "cubemapSampler"});
+  heightMapSampler = etna::Sampler(
+    etna::Sampler::CreateInfo{
+      .filter = vk::Filter::eLinear,
+      .addressMode = vk::SamplerAddressMode::eRepeat,
+      .name = "heightMapSampler"});
 
   oneShotCommands = ctx.createOneShotCmdMgr();
 
@@ -60,14 +64,39 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
     etna::BlockingTransferHelper::CreateInfo{.stagingSize = 4096 * 4096 * 6});
 
   lightModule.allocateResources();
-  terrainGeneratorModule.allocateResources();
   terrainRenderModule.allocateResources();
+
+  heightMapTexture = render_utility::load_texture(
+    *transferHelper,
+    *oneShotCommands,
+    GRAPHICS_COURSE_RESOURCES_ROOT "/textures/HeightMaps/4K/Heightmap_06_Canyons_blurred.png",
+    vk::Format::eR8G8B8A8Srgb);
+
+  info = {.extent = glm::ivec2(4096), .heightOffset = 0.04f, .heightAmplifier = 10000.0f};
+
+  terrainInfoBuffer = ctx.createBuffer(
+    etna::Buffer::CreateInfo{
+      .size = sizeof(TerrainInfo),
+      .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
+      .memoryUsage = VMA_MEMORY_USAGE_AUTO,
+      .allocationCreate =
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+      .name = "terrainInfo"});
+
+  terrainInfoBuffer.map();
+  std::memcpy(terrainInfoBuffer.data(), &info, sizeof(TerrainInfo));
+  terrainInfoBuffer.unmap();
 }
 
 // call only after loadShaders(...)
 void WorldRenderer::loadScene()
 {
-  terrainGeneratorModule.execute();
+  terrainRenderModule.loadMaps(
+    {etna::Binding{
+       0,
+       heightMapTexture.genBinding(
+         heightMapSampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
+     etna::Binding{1, terrainInfoBuffer.genBinding()}});
 
   lightModule.loadLights(
     {{.pos = {0, 27, 0}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 15},
@@ -87,30 +116,30 @@ void WorldRenderer::loadScene()
       .intensity = 1.0f,
       .color = glm::vec3{1, 0.694, 0.32}}});
 
-  lightModule.loadMaps(terrainGeneratorModule.getBindings(vk::ImageLayout::eGeneral));
+  lightModule.loadMaps(
+    {etna::Binding{
+       0,
+       heightMapTexture.genBinding(
+         heightMapSampler.get(), vk::ImageLayout::eShaderReadOnlyOptimal)},
+     etna::Binding{1, terrainInfoBuffer.genBinding()}});
 
   lightModule.displaceLights();
-
-  terrainRenderModule.loadMaps(
-    terrainGeneratorModule.getBindings(vk::ImageLayout::eShaderReadOnlyOptimal));
 }
 
 void WorldRenderer::loadShaders()
 {
   lightModule.loadShaders();
-  terrainGeneratorModule.loadShaders();
   terrainRenderModule.loadShaders();
 
   etna::create_program(
     "deferred_shading",
-    {PROJECT_RENDERER_STATIC_SHADERS_ROOT "decoy.vert.spv",
-     PROJECT_RENDERER_STATIC_SHADERS_ROOT "shading.frag.spv"});
+    {PROJECT_RENDERER_STATIC_NONGEN_SHADERS_ROOT "decoy.vert.spv",
+     PROJECT_RENDERER_STATIC_NONGEN_SHADERS_ROOT "shading.frag.spv"});
 }
 
 void WorldRenderer::setupRenderPipelines()
 {
   lightModule.setupPipelines();
-  terrainGeneratorModule.setupPipelines();
   terrainRenderModule.setupPipelines(wireframeEnabled, renderTargetFormat);
 
   auto& pipelineManager = etna::get_context().getPipelineManager();
@@ -274,7 +303,36 @@ void WorldRenderer::drawGui()
 
   lightModule.drawGui();
 
-  terrainGeneratorModule.drawGui();
+  static bool infosChanged = false;
+
+  if (ImGui::CollapsingHeader("Terrain settings"))
+  {
+    ImGui::SeparatorText("Terrain info");
+    int extent[] = {info.extent.x, info.extent.y};
+    infosChanged = infosChanged || ImGui::DragInt2("Extent", extent, 1, 1, 131072);
+    float heightOffset = info.heightOffset;
+    infosChanged =
+      infosChanged || ImGui::DragFloat("Height Offset", &heightOffset, 0.01f, -10.0f, 10.0f, "%f");
+    float heightAmplifier = info.heightAmplifier;
+    infosChanged = infosChanged ||
+      ImGui::DragFloat("Height Amplifier", &heightAmplifier, 0.01f, 1.0f, 1024.0f, "%f");
+
+    info = {
+      .extent = {extent[0], extent[1]},
+      .heightOffset = heightOffset,
+      .heightAmplifier = heightAmplifier,
+    };
+  }
+
+  if (infosChanged)
+  {
+    ETNA_CHECK_VK_RESULT(etna::get_context().getDevice().waitIdle());
+    terrainInfoBuffer.map();
+    std::memcpy(terrainInfoBuffer.data(), &info, sizeof(TerrainInfo));
+    terrainInfoBuffer.unmap();
+    infosChanged = false;
+  }
+
   terrainRenderModule.drawGui();
 
   ImGui::SeparatorText("General Settings");

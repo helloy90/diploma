@@ -71,7 +71,11 @@ void WorldRenderer::allocateResources(glm::uvec2 swapchain_resolution)
 // call only after loadShaders(...)
 void WorldRenderer::loadScene()
 {
-  lightModule.loadLights();
+  lightModule.loadLights(
+    {{.pos = {0, 27, 0}, .radius = 0, .worldPos = {}, .color = {1, 1, 1}, .intensity = 15}},
+    {{.direction = glm::vec3{1, -0.35, -3},
+      .intensity = 1.0f,
+      .color = glm::vec3{1, 0.694, 0.32}}});
   waterGeneratorModule.executeStart();
 }
 

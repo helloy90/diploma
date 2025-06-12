@@ -4,6 +4,7 @@
 #include <etna/Buffer.hpp>
 #include <etna/Sampler.hpp>
 #include <etna/BlockingTransferHelper.hpp>
+#include <vector>
 
 #include "DirectionalLight.h"
 #include "Light.h"
@@ -18,7 +19,7 @@ public:
   void loadShaders();
   void setupPipelines();
 
-  void loadLights();
+  void loadLights(std::vector<Light> new_light, std::vector<DirectionalLight> new_directional_lights);
   void displaceLights();
 
   void drawGui();
