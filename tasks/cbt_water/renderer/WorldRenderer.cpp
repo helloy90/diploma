@@ -301,17 +301,21 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
 
     etna::flush_barriers(cmd_buf);
 
-    waterRenderModule.execute(
-      cmd_buf,
-      resolution,
-      {{.image = renderTarget.get(), .view = renderTarget.getView({})}},
-      gBuffer->genDepthAttachmentParams(),
-      renderPacket,
-      waterGeneratorModule.getHeightMap(),
-      waterGeneratorModule.getNormalMap(),
-      waterGeneratorModule.getSampler(),
-      lightModule.getDirectionalLightsBuffer(),
-      cubemapTexture);
+    {
+      ETNA_PROFILE_GPU(cmd_buf, fullWaterRender);
+      waterRenderModule.execute(
+        cmd_buf,
+        resolution,
+        {{.image = renderTarget.get(), .view = renderTarget.getView({})}},
+        gBuffer->genDepthAttachmentParams(),
+        renderPacket,
+        waterGeneratorModule.getHeightMap(),
+        waterGeneratorModule.getNormalMap(),
+        waterGeneratorModule.getSampler(),
+        lightModule.getDirectionalLightsBuffer(),
+        cubemapTexture);
+    }
+
 
     {
       ETNA_PROFILE_GPU(cmd_buf, renderCubemap);

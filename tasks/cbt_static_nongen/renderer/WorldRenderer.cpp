@@ -395,11 +395,14 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
 
     etna::flush_barriers(cmd_buf);
 
-    terrainRenderModule.execute(
-      cmd_buf,
-      resolution,
-      gBuffer->genColorAttachmentParams(),
-      gBuffer->genDepthAttachmentParams());
+    {
+      ETNA_PROFILE_GPU(cmd_buf, fullTerrainRender);
+      terrainRenderModule.execute(
+        cmd_buf,
+        resolution,
+        gBuffer->genColorAttachmentParams(),
+        gBuffer->genDepthAttachmentParams());
+    }
 
     etna::set_state(
       cmd_buf,
