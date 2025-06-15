@@ -400,7 +400,7 @@ void WorldRenderer::renderWorld(vk::CommandBuffer cmd_buf, vk::Image target_imag
     etna::flush_barriers(cmd_buf);
 
     {
-      ETNA_PROFILE_GPU(cmd_buf, fullTerrainRender);
+      ETNA_PROFILE_GPU(cmd_buf, interestZoneRender);
       terrainRenderModule.execute(
         cmd_buf,
         renderPacket,
