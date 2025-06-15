@@ -1459,20 +1459,9 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
     // 00 - 0 degrees (0), 01 - 90 degrees(1), 10 - 270 degrees (2), 11 - 180 degrees(3)
     glm::mat4x4 rotationMatrices[] = {
       glm::identity<glm::mat4x4>(),
-      glm::mat4x4(  0, 0, -1, 0, 
-                    0, 1, 0, 0, 
-                    1, 0, 0, 0, 
-                    0, 0, 0, 1),
-      glm::mat4x4(0, 0, 1, 0, 
-                  0, 1, 0, 0, 
-                  -1, 0, 0, 0,
-                   0, 0, 0, 1),
-      glm::mat4x4(-1, 0, 0, 0, 
-                    0, 1, 0, 0, 
-                    0, 0, -1, 0, 
-                    0, 0, 0, 1)};
-
-    // float rotationMatrices[] = {0.0f, 90.0f, 270.0f, 180.0f};
+      glm::mat4x4(0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
+      glm::mat4x4(0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1),
+      glm::mat4x4(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)};
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
@@ -1487,35 +1476,17 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
       diff = cameraHorizontalPosition - nextSnappedPosition;
 
       uint32_t index = 0;
-      // scale.x == scale.y
       index |= (diff.x < scale.x ? 2 : 0);
       index |= (diff.y < scale.y ? 1 : 0);
 
       newPosition = tileCenter;
 
-      instanceMatrices[meshOffset] = rotationMatrices[index] * glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x, 0, scale.x));
-      // instanceMatrices[meshOffset] = glm::rotate(
-      //   glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x, 0, scale.x)),
-      //   glm::radians(rotationMatrices[index]),
-      //   glm::vec3(0, 1, 0));
+      instanceMatrices[meshOffset] = rotationMatrices[index] *
+        glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x, 0, scale.x));
+
       instanceMatrices[meshOffset][3].x = newPosition.x;
       instanceMatrices[meshOffset][3].y = 0;
       instanceMatrices[meshOffset][3].z = newPosition.y;
-
-      // for (std::uint32_t relem = meshes[trimMesh].firstRelem;
-      //      relem < meshes[trimMesh].firstRelem + meshes[trimMesh].relemCount;
-      //      relem++)
-      // {
-      //   auto& currentBounds = renderElementsBounds[relem];
-      //   glm::vec3 newMin = rotationMatrices[index] * glm::vec4(currentBounds.minPos.x, 0,
-      //   currentBounds.minPos.y, 1); glm::vec3 newMax = rotationMatrices[index] *
-      //   glm::vec4(currentBounds.maxPos.x, 0, currentBounds.maxPos.y, 1);
-
-      //   currentBounds = {
-      //     .minPos = glm::vec2(newMin.x, newMin.z),
-      //     .maxPos = glm::vec2(newMax.x, newMax.z)
-      //   };
-      // }
 
       ETNA_VERIFYF(
         instanceMeshes[meshOffset] == trimMesh,
