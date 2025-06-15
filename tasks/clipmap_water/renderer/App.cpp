@@ -29,7 +29,7 @@ App::App()
 
   renderer->loadScene();
 
-  cameraPathPoints = {{0, 20, 0}, {-1000, 20, 1000}, {-1000, 20, 0}, {0, 20, 0}};
+  cameraPathPoints = {{0, 30, 0}, {-2000, 30, 2000}, {-2000, 30, 0}, {0, 30, 0}};
 }
 
 void App::run()
@@ -148,7 +148,7 @@ void App::moveCamToPoint(Camera& cam, glm::vec3 point, float dt)
 
   dir = (length(dir) > 1e-9 ? normalize(dir) : dir);
 
-  cam.lookAt(cam.position, cam.position + dir, {0, 1, 0});
+  cam.lookAt(cam.position, cam.position + dir - glm::vec3(0, 0.2, 0), {0, 1, 0});
 
   cam.move(dt * 100 * dir);
 }
