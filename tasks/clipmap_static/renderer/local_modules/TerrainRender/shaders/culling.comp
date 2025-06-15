@@ -128,7 +128,7 @@ void main()
                           vec4(bounds[relemIdx].maxPos.x, 20000.0, bounds[relemIdx].maxPos.y, 1.0))
                            .xyz;
 
-    if (isVisible(currentMinPos, currentMaxPos))
+    if (isVisible(currentMinPos, currentMaxPos) || currentMeshInstance == 3)
     {
       uint drawRelemInstance = atomicAdd(drawCommands[relemIdx].instanceCount, 1);
       uint index = relemInstanceOffsets[relemIdx] + drawRelemInstance;

@@ -407,7 +407,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      result.bounds.emplace_back(Bounds{.minPos = {0, 0}, .maxPos = {vertexTileSize - 1, 1}});
+      result.bounds.emplace_back(Bounds{.minPos = {0, 0}, .maxPos = {offset + vertexTileSize, 1}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -497,7 +497,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
         }
       }
 
-      result.bounds.emplace_back(Bounds{.minPos = {0, 0}, .maxPos = {1, vertexTileSize - 1}});
+      result.bounds.emplace_back(Bounds{.minPos = {0, 0}, .maxPos = {1, offset + vertexTileSize}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -591,8 +591,8 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
       result.bounds.emplace_back(
         Bounds{
-          .minPos = {-int32_t(offset + 0), 0},
-          .maxPos = {-int32_t(offset + vertexTileSize - 1), 1}});
+          .minPos = {-int32_t(offset + vertexTileSize - 1), 0},
+          .maxPos = {-int32_t(offset + 0), 1}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -684,8 +684,8 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
       result.bounds.emplace_back(
         Bounds{
-          .minPos = {0, -int32_t(offset + 0)},
-          .maxPos = {1, -int32_t(offset + vertexTileSize - 1)}});
+          .minPos = {0, -int32_t(offset + vertexTileSize - 1)},
+          .maxPos = {1, -int32_t(offset + 0)}});
 
 #if DEBUG_FILE_WRITE
       {
@@ -1118,7 +1118,7 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
     scale = 1u << level;
     for (uint32_t i = 0; i < 12; i++)
     {
-      result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
+      result.matrices.emplace_back(glm::scale(identityMat, {scale, 1, scale}));
       result.meshes.emplace_back(squareMesh);
     }
   }
@@ -1126,21 +1126,21 @@ TerrainManager::ProcessedInstances TerrainManager::processInstances() const
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
     scale = 1u << level;
-    result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
+    result.matrices.emplace_back(glm::scale(identityMat, {scale, 1, scale}));
     result.meshes.emplace_back(fillerMesh);
   }
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
     scale = 1u << level;
-    result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
+    result.matrices.emplace_back(glm::scale(identityMat, {scale, 1, scale}));
     result.meshes.emplace_back(trimMesh);
   }
 
   for (uint32_t level = 0; level < clipmapLevels; level++)
   {
     scale = 1u << level;
-    result.matrices.emplace_back(glm::scale(identityMat, {scale, scale, scale}));
+    result.matrices.emplace_back(glm::scale(identityMat, {scale, 1, scale}));
     result.meshes.emplace_back(seamMesh);
   }
 
@@ -1459,9 +1459,20 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
     // 00 - 0 degrees (0), 01 - 90 degrees(1), 10 - 270 degrees (2), 11 - 180 degrees(3)
     glm::mat4x4 rotationMatrices[] = {
       glm::identity<glm::mat4x4>(),
-      glm::mat4x4(0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
-      glm::mat4x4(0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1),
-      glm::mat4x4(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)};
+      glm::mat4x4(  0, 0, -1, 0, 
+                    0, 1, 0, 0, 
+                    1, 0, 0, 0, 
+                    0, 0, 0, 1),
+      glm::mat4x4(0, 0, 1, 0, 
+                  0, 1, 0, 0, 
+                  -1, 0, 0, 0,
+                   0, 0, 0, 1),
+      glm::mat4x4(-1, 0, 0, 0, 
+                    0, 1, 0, 0, 
+                    0, 0, -1, 0, 
+                    0, 0, 0, 1)};
+
+    // float rotationMatrices[] = {0.0f, 90.0f, 270.0f, 180.0f};
 
     for (uint32_t level = 0; level < clipmapLevels; level++)
     {
@@ -1482,8 +1493,11 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
       newPosition = tileCenter;
 
-      instanceMatrices[meshOffset] =
-        rotationMatrices[index] * glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x));
+      instanceMatrices[meshOffset] = rotationMatrices[index] * glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x, 0, scale.x));
+      // instanceMatrices[meshOffset] = glm::rotate(
+      //   glm::scale(glm::identity<glm::mat4x4>(), glm::vec3(scale.x, 0, scale.x)),
+      //   glm::radians(rotationMatrices[index]),
+      //   glm::vec3(0, 1, 0));
       instanceMatrices[meshOffset][3].x = newPosition.x;
       instanceMatrices[meshOffset][3].y = 0;
       instanceMatrices[meshOffset][3].z = newPosition.y;
@@ -1493,8 +1507,9 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
       //      relem++)
       // {
       //   auto& currentBounds = renderElementsBounds[relem];
-      //   glm::vec3 newMin = rotationMatrices[index] * glm::vec4(currentBounds.minPos.x, 0, currentBounds.minPos.y, 1);
-      //   glm::vec3 newMax = rotationMatrices[index] * glm::vec4(currentBounds.maxPos.x, 0, currentBounds.maxPos.y, 1);
+      //   glm::vec3 newMin = rotationMatrices[index] * glm::vec4(currentBounds.minPos.x, 0,
+      //   currentBounds.minPos.y, 1); glm::vec3 newMax = rotationMatrices[index] *
+      //   glm::vec4(currentBounds.maxPos.x, 0, currentBounds.maxPos.y, 1);
 
       //   currentBounds = {
       //     .minPos = glm::vec2(newMin.x, newMin.z),
