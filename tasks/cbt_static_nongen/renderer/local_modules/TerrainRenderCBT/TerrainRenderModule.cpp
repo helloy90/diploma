@@ -17,7 +17,7 @@
 TerrainRenderModule::TerrainRenderModule()
   : cbt(std::make_unique<CBTree>(25))
   , displayParams(
-      {.pixelsPerEdge = 5.0f,
+      {.pixelsPerEdge = 15.0f,
        .subdivision = 4,
        .displacementVariance = 0.01f,
        .resolution = 65536.0f})
@@ -60,6 +60,23 @@ void TerrainRenderModule::loadShaders()
       TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "process.tese.spv",
       TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "terrain.frag.spv",
     });
+  // etna::create_program(
+  //   "subdivision_split",
+  //   {
+  //     TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "decoy.vert.spv",
+  //     TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "subdivision_split.tesc.spv",
+  //     TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "process_contrast.tese.spv",
+  //     TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "terrain_contrast.frag.spv",
+  //   });
+
+  // etna::create_program(
+  //   "subdivision_merge",
+  //   {
+  //     TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "decoy.vert.spv",
+  //     TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "subdivision_merge.tesc.spv",
+  //     TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "process_contrast.tese.spv",
+  //     TERRAIN_RENDER_CBT_NONGEN_MODULE_SHADERS_ROOT "terrain_contrast.frag.spv",
+  //   });
 
   cbt->loadShaders();
 }

@@ -104,7 +104,11 @@ void WorldRenderer::loadShaders()
   etna::create_program(
     "deferred_shading",
     {PROJECT_RENDERER_STATIC_SHADERS_ROOT "decoy.vert.spv",
-     PROJECT_RENDERER_STATIC_SHADERS_ROOT "shading.frag.spv"});
+     PROJECT_RENDERER_STATIC_SHADERS_ROOT "shading_contrast.frag.spv"});
+  // etna::create_program(
+  //   "deferred_shading",
+  //   {PROJECT_RENDERER_STATIC_SHADERS_ROOT "decoy.vert.spv",
+  //    PROJECT_RENDERER_STATIC_SHADERS_ROOT "shading.frag.spv"});
 }
 
 void WorldRenderer::setupRenderPipelines()

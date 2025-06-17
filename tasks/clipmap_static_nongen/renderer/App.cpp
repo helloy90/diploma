@@ -23,7 +23,7 @@ App::App()
 
   renderer->initFrameDelivery(std::move(surface), [this]() { return mainWindow->getResolution(); });
 
-  mainCam.lookAt({0, 20, 0}, {10, 0, 10}, {0, 1, 0});
+  mainCam.lookAt({0, 20, 0}, {0, 0, -500}, {0, 1, 0});
 
   ImGuiRenderer::enableImGuiForWindow(mainWindow->native());
 
@@ -77,7 +77,7 @@ void App::processInput(float dt)
       movingOnPath = false;
     }
 
-    if (glm::length(cameraPathPoints[currentPointIndex] - mainCam.position) < 1e-3)
+    if (glm::length(cameraPathPoints[currentPointIndex] - mainCam.position) < 0.1)
     {
       currentPointIndex++;
     }

@@ -35,6 +35,7 @@ layout(push_constant) uniform proj_view_t
 layout(location = 0) out VS_OUT
 {
   vec3 wPos;
+  vec3 normal;
 }
 vOut;
 
@@ -43,6 +44,31 @@ out gl_PerVertex
   vec4 gl_Position;
 };
 
+vec3 generateNormal(ivec2 heightMapSize, vec3 pos)
+{
+  float eps = 1 / float(heightMapSize.x);
+
+  float left = 0;
+  float right = 0;
+  float up = 0;
+  float down = 0;
+  for (uint i = 0; i < texturesAmount; i++)
+  {
+    vec2 texCoord = 0.5 * (pos.xz) / infos[i].extent + 0.5;
+    left += (texture(heightMaps[i], texCoord + vec2(-eps, 0)).x - infos[i].heightOffset) *
+      infos[i].heightAmplifier;
+    right += (texture(heightMaps[i], texCoord + vec2(eps, 0)).x - infos[i].heightOffset) *
+      infos[i].heightAmplifier;
+    up += (texture(heightMaps[i], texCoord + vec2(0, eps)).x - infos[i].heightOffset) *
+      infos[i].heightAmplifier;
+    down += (texture(heightMaps[i], texCoord + vec2(0, -eps)).x - infos[i].heightOffset) *
+      infos[i].heightAmplifier;
+  }
+
+  vec3 normal = normalize(vec3(left - right, 2.0 * eps, down - up));
+
+  return normal;
+}
 
 void main(void)
 {
@@ -62,6 +88,9 @@ void main(void)
   pos.y = height;
 
   vOut.wPos = pos;
+
+  ivec2 heightMapSize = textureSize(heightMaps[0], 0);
+  vOut.normal = generateNormal(heightMapSize, pos);
 
   gl_Position = projView * vec4(vOut.wPos, 1.0);
 }

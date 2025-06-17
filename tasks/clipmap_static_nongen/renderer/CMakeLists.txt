@@ -17,4 +17,5 @@ target_link_libraries(project_renderer_static_nongen
 target_add_shaders(project_renderer_static_nongen
   shaders/decoy.vert
   shaders/shading.frag
+  shaders/shading_contrast.frag
 )

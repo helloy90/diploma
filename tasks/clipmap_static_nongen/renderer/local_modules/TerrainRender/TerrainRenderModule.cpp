@@ -13,7 +13,7 @@
 
 
 TerrainRenderModule::TerrainRenderModule()
-  : terrainMgr(std::make_unique<TerrainManager>(10, 255))
+  : terrainMgr(std::make_unique<TerrainManager>(8, 255))
 {
 }
 
@@ -52,6 +52,11 @@ void TerrainRenderModule::allocateResources()
 void TerrainRenderModule::loadShaders()
 {
   etna::create_program("culling_meshes", {TERRAIN_RENDER_NONGEN_MODULE_SHADERS_ROOT "culling.comp.spv"});
+
+  // etna::create_program(
+  //   "terrain_render",
+  //   {TERRAIN_RENDER_NONGEN_MODULE_SHADERS_ROOT "clipmap_contrast.vert.spv",
+  //    TERRAIN_RENDER_NONGEN_MODULE_SHADERS_ROOT "clipmap_contrast.frag.spv"});
 
   etna::create_program(
     "terrain_render",

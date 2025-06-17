@@ -58,7 +58,6 @@ vec3 generateNormal(ivec2 heightMapSize)
       infos[i].heightAmplifier;
   }
 
-
   vec3 normal = normalize(vec3(left - right, 2.0 * eps, down - up));
 
   return normal;

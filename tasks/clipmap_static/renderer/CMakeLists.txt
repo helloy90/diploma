@@ -17,4 +17,5 @@ target_link_libraries(project_renderer_static
 target_add_shaders(project_renderer_static
   shaders/decoy.vert
   shaders/shading.frag
+  shaders/shading_contrast.frag
 )

@@ -16,4 +16,6 @@ target_add_shaders(terrain_render_cbt_nongen_module
     shaders/subdivision_merge.tesc
     shaders/process.tese
     shaders/terrain.frag
+    shaders/process_contrast.tese
+    shaders/terrain_contrast.frag
 )

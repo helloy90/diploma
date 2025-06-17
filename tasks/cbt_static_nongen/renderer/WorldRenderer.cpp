@@ -132,7 +132,12 @@ void WorldRenderer::loadShaders()
   lightModule.loadShaders();
   terrainRenderModule.loadShaders();
 
-  etna::create_program(
+  // etna::create_program(
+  //   "deferred_shading",
+  //   {PROJECT_RENDERER_CBT_NONGEN_SHADERS_ROOT "decoy.vert.spv",
+  //    PROJECT_RENDERER_CBT_NONGEN_SHADERS_ROOT "shading_contrast.frag.spv"});
+
+       etna::create_program(
     "deferred_shading",
     {PROJECT_RENDERER_CBT_NONGEN_SHADERS_ROOT "decoy.vert.spv",
      PROJECT_RENDERER_CBT_NONGEN_SHADERS_ROOT "shading.frag.spv"});

@@ -13,5 +13,7 @@ target_link_libraries(terrain_render_module PUBLIC etna render_utils gui tinyglt
 target_add_shaders(terrain_render_module
     shaders/clipmap.vert
     shaders/clipmap.frag
+    shaders/clipmap_contrast.vert
+    shaders/clipmap_contrast.frag
     shaders/culling.comp
 )

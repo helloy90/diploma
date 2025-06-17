@@ -55,8 +55,13 @@ void TerrainRenderModule::loadShaders()
 
   etna::create_program(
     "terrain_render",
-    {TERRAIN_RENDER_MODULE_SHADERS_ROOT "clipmap.vert.spv",
-     TERRAIN_RENDER_MODULE_SHADERS_ROOT "clipmap.frag.spv"});
+    {TERRAIN_RENDER_MODULE_SHADERS_ROOT "clipmap_contrast.vert.spv",
+     TERRAIN_RENDER_MODULE_SHADERS_ROOT "clipmap_contrast.frag.spv"});
+
+  // etna::create_program(
+  //   "terrain_render",
+  //   {TERRAIN_RENDER_MODULE_SHADERS_ROOT "clipmap.vert.spv",
+  //    TERRAIN_RENDER_MODULE_SHADERS_ROOT "clipmap.frag.spv"});
 }
 
 void TerrainRenderModule::setupPipelines(bool wireframe_enabled, vk::Format render_target_format)
