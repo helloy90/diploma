@@ -277,7 +277,7 @@ void main()
   rim = smoothstep(0.4, 0.8, rim) * edgeFactor;
   vec3 rimLight = currentLight.color * rim * 2.0;
 
-  color += diffuse * 0.7 + specular + rimLight;
+  // color += diffuse * 0.7 + specular + rimLight;
 
   // color = pow(color, vec3(1.5));
 
