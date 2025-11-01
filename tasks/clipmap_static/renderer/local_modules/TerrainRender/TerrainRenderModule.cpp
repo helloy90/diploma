@@ -168,6 +168,8 @@ void TerrainRenderModule::execute(
   std::vector<etna::RenderTargetState::AttachmentParams> color_attachment_params,
   etna::RenderTargetState::AttachmentParams depth_attachment_params)
 {
+  terrainMgr->prepareForDraw();
+  
   auto& matricesBuffer = terrainMgr->getInstanceMatricesBuffer();
 
   {

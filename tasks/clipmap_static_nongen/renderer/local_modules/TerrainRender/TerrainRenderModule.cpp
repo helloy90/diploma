@@ -51,7 +51,8 @@ void TerrainRenderModule::allocateResources()
 
 void TerrainRenderModule::loadShaders()
 {
-  etna::create_program("culling_meshes", {TERRAIN_RENDER_NONGEN_MODULE_SHADERS_ROOT "culling.comp.spv"});
+  etna::create_program(
+    "culling_meshes", {TERRAIN_RENDER_NONGEN_MODULE_SHADERS_ROOT "culling.comp.spv"});
 
   // etna::create_program(
   //   "terrain_render",
@@ -168,6 +169,8 @@ void TerrainRenderModule::execute(
   std::vector<etna::RenderTargetState::AttachmentParams> color_attachment_params,
   etna::RenderTargetState::AttachmentParams depth_attachment_params)
 {
+  terrainMgr->prepareForDraw();
+
   auto& matricesBuffer = terrainMgr->getInstanceMatricesBuffer();
 
   {

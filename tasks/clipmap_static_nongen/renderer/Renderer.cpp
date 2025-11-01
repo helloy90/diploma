@@ -26,22 +26,23 @@ void Renderer::initVulkan(std::span<const char*> instance_extensions)
   deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
   deviceExtensions.push_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
 
-  etna::initialize(etna::InitParams{
-    .applicationName = "project_renderer_static",
-    .applicationVersion = VK_MAKE_VERSION(0, 1, 0),
-    .instanceExtensions = instanceExtensions,
-    .deviceExtensions = deviceExtensions,
-    .features =
-      {.features =
-         {.tessellationShader = vk::True,
-          .multiDrawIndirect = vk::True,
-          .fillModeNonSolid = vk::True /*debug*/,
-          .fragmentStoresAndAtomics = vk::True}},
-    .descriptorIndexingFeatures =
-      {.shaderSampledImageArrayNonUniformIndexing = vk::True, .runtimeDescriptorArray = vk::True},
-    .physicalDeviceIndexOverride = {},
-    .numFramesInFlight = 2,
-  });
+  etna::initialize(
+    etna::InitParams{
+      .applicationName = "project_renderer_static",
+      .applicationVersion = VK_MAKE_VERSION(0, 1, 0),
+      .instanceExtensions = instanceExtensions,
+      .deviceExtensions = deviceExtensions,
+      .features =
+        {.features =
+           {.tessellationShader = vk::True,
+            .multiDrawIndirect = vk::True,
+            .fillModeNonSolid = vk::True /*debug*/,
+            .fragmentStoresAndAtomics = vk::True}},
+      .descriptorIndexingFeatures =
+        {.shaderSampledImageArrayNonUniformIndexing = vk::True, .runtimeDescriptorArray = vk::True},
+      .physicalDeviceIndexOverride = {},
+      .numFramesInFlight = 2,
+    });
 }
 
 void Renderer::initFrameDelivery(vk::UniqueSurfaceKHR a_surface, ResolutionProvider res_provider)
@@ -52,14 +53,16 @@ void Renderer::initFrameDelivery(vk::UniqueSurfaceKHR a_surface, ResolutionProvi
 
   commandManager = ctx.createPerFrameCmdMgr();
 
-  window = ctx.createWindow(etna::Window::CreateInfo{
-    .surface = std::move(a_surface),
-  });
+  window = ctx.createWindow(
+    etna::Window::CreateInfo{
+      .surface = std::move(a_surface),
+    });
 
-  auto [w, h] = window->recreateSwapchain(etna::Window::DesiredProperties{
-    .resolution = {resolution.x, resolution.y},
-    .vsync = useVsync,
-  });
+  auto [w, h] = window->recreateSwapchain(
+    etna::Window::DesiredProperties{
+      .resolution = {resolution.x, resolution.y},
+      .vsync = useVsync,
+    });
 
   resolution = {w, h};
 
@@ -132,7 +135,7 @@ void Renderer::drawFrame()
 
   if (nextSwapchainImage)
   {
-    auto [image, view, availableSem] = *nextSwapchainImage;
+    auto [image, view, availableSem, backbufferAvaliableSem] = *nextSwapchainImage;
 
     ETNA_CHECK_VK_RESULT(currentCmdBuf.begin(vk::CommandBufferBeginInfo{}));
     {
@@ -168,7 +171,8 @@ void Renderer::drawFrame()
     }
     ETNA_CHECK_VK_RESULT(currentCmdBuf.end());
 
-    auto renderingDone = commandManager->submit(std::move(currentCmdBuf), std::move(availableSem));
+    auto renderingDone = commandManager->submit(
+      std::move(currentCmdBuf), std::move(availableSem), std::move(backbufferAvaliableSem));
 
     const bool presented = window->present(std::move(renderingDone), view);
 
@@ -185,10 +189,11 @@ void Renderer::drawFrame()
   if (!nextSwapchainImage && resolutionProvider() != glm::uvec2{0, 0})
   {
     spdlog::info("recreating swapchain");
-    auto [w, h] = window->recreateSwapchain(etna::Window::DesiredProperties{
-      .resolution = {resolution.x, resolution.y},
-      .vsync = useVsync,
-    });
+    auto [w, h] = window->recreateSwapchain(
+      etna::Window::DesiredProperties{
+        .resolution = {resolution.x, resolution.y},
+        .vsync = useVsync,
+      });
     ETNA_VERIFY((resolution == glm::uvec2{w, h}));
   }
 
@@ -197,8 +202,9 @@ void Renderer::drawFrame()
 
 void Renderer::reloadShaders()
 {
-  const int retval = std::system("cd " GRAPHICS_COURSE_ROOT "/build"
-                                 " && cmake --build . --target project_renderer_static_shaders");
+  const int retval = std::system(
+    "cd " GRAPHICS_COURSE_ROOT "/build"
+    " && cmake --build . --target project_renderer_static_shaders");
   if (retval != 0)
     spdlog::warn("Shader recompilation returned a non-zero return code!");
   else

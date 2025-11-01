@@ -47,11 +47,11 @@ void LightModule::setupPipelines()
   lightDisplacementPipeline = pipelineManager.createComputePipeline("lights_displacement", {});
 }
 
-void LightModule::loadLights(std::vector<Light> new_light, std::vector<DirectionalLight> new_directional_lights)
+void LightModule::loadLights(std::vector<Light> new_lights, std::vector<DirectionalLight> new_directional_lights)
 {
   auto& ctx = etna::get_context();
 
-  lights = new_light;
+  lights = new_lights;
 
   for (auto& light : lights)
   {

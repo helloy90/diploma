@@ -53,7 +53,7 @@ TerrainManager::ProcessedMeshes TerrainManager::initializeMeshes() const
 
   {
     // using 1 cross mesh, 1 square tile, 4 filling meshes between tiles, 1 trim mesh (is rotated
-    // when needed) and (not initialized for now) seam mesh
+    // when needed) and seam mesh
     std::size_t vertexAmount = (2 * vertexTileSize + 1) * 2 + vertexTileSize * vertexTileSize +
       vertexTileSize * 3 * 4 + (2 * vertexGridSize + 1) * 2 + 4 * vertexGridSize;
     result.vertices.reserve(vertexAmount);
@@ -1415,14 +1415,6 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
 
   if (clipmapLevels == 0)
   {
-    auto& currentInstanceMatricesBuffer = unifiedInstanceMatricesbuf->get();
-    currentInstanceMatricesBuffer.map();
-    std::memcpy(
-      currentInstanceMatricesBuffer.data(),
-      instanceMatrices.data(),
-      instanceMatrices.size() * sizeof(glm::mat4x4));
-    currentInstanceMatricesBuffer.unmap();
-
     return;
   }
 
@@ -1525,7 +1517,9 @@ void TerrainManager::moveClipmap(glm::vec3 camera_position)
       meshOffset++;
     }
   }
+}
 
+void TerrainManager::prepareForDraw() {
   auto& currentInstanceMatricesBuffer = unifiedInstanceMatricesbuf->get();
   currentInstanceMatricesBuffer.map();
   std::memcpy(

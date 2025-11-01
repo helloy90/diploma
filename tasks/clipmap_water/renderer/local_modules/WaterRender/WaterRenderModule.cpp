@@ -187,6 +187,8 @@ void WaterRenderModule::execute(
   const etna::Buffer& directional_lights_buffer,
   const etna::Image& cubemap)
 {
+  terrainMgr->prepareForDraw();
+
   {
     ETNA_PROFILE_GPU(cmd_buf, cullWaterMeshes);
     cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, cullingPipeline.getVkPipeline());

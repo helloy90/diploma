@@ -2,7 +2,7 @@
 Репозиторий с реализациями алгоритмов по рендерингу ландшафта - geometry clipmaps и разбиение по наибольшему ребру с помощью параллельных бинарных деревьев. Для каждого алгоритма реализованы три сцены — с генерируемой картой высот (проекты `project_renderer_static` и `project_renderer_cbt`), загружаемой картой высот (`project_renderer_static_nongen` и `project_renderer_cbt_nongen`) и динамической картой высот (`project_renderer_water` и `project_renderer_water_cbt`)
 
 ## Начало работы
-Для начала работы требуется установка достаточно свежих версий [Vulkan SDK](https://vulkan.lunarg.com) (1.3.275...< 1.4) и [CMake](https://cmake.org/) (3.30+).
+Для начала работы требуется установка достаточно свежих версий [Vulkan SDK](https://vulkan.lunarg.com) (1.4.328+) и [CMake](https://cmake.org/) (3.30+).
 
 ### Сборка и запуск
 Далее достаточно открыть папку репозитория в редакторе с поддержкой CMake-проектов (Vscode, Visual Studio, Clion, ...), либо сконфигурировать проект при помощи CMake вручную в папку `build`.
